@@ -1323,12 +1323,18 @@
 						<Anchors>
 							<Anchor point="TOPLEFT" x="3" y="-3"/>
 						</Anchors>
-						<Layers>
+            <Scripts>
+              <OnShow>
+                  CharCreateCustomizationFrame_OnShow();
+              </OnShow>
+            </Scripts>
+            <Layers>
 							<Layer level="BACKGROUND">
 								<Texture name="$parentBanner" file="Interface\Glues\CharacterCreate\UI-CharacterCreate-Banner">
-									<Size x="256" y="512"/>
-									<Anchors>
-										<Anchor point="TOP" x="0" y="18"/>
+									<Size x="200" y="308"/>
+                  <TexCoords left="0.109375" right="0.890625" top="0.201171875" bottom="0.80078125"/>
+                  <Anchors>
+										<Anchor point="TOP"  x="0" y="18" relativePoint="BOTTOM"/>
 									</Anchors>
 								</Texture>
 							</Layer>
@@ -1385,9 +1391,6 @@
 							</CheckButton>
 							<Button name="CharCreateRandomizeButton" inherits="GlueButtonSmallTemplate" text="RANDOMIZE">
 								<Size x="146" y="34"/>
-								<Anchors>
-									<Anchor point="BOTTOM" x="0" y="-266"/>
-								</Anchors>
 								<Scripts>
 									<OnLoad>
 										self:SetWidth(self:GetTextWidth() + 50);

@@ -113,6 +113,11 @@ MODEL_CAMERA_CONFIG = {
 	}
 };
 
+BANNER_DEFAULT_TEXTURE_COORDS = {0.109375, 0.890625, 0.201171875, 0.80078125};
+BANNER_DEFAULT_SIZE = {200, 308};
+
+CHAR_CUSTOMIZE_HAIR_COLOR = 4;
+
 function CharacterCreate_OnLoad(self)
 	self:RegisterEvent("RANDOM_CHARACTER_NAME_RESULT");
 
@@ -616,6 +621,68 @@ function CharacterCreate_Forward()
 	end
 end
 
+function CharCreateCustomizationFrame_OnShow ()
+	-- reset size/tex coord to default to facilitate switching between genders for Pandaren
+	CharCreateCustomizationFrameBanner:SetSize(BANNER_DEFAULT_SIZE[1], BANNER_DEFAULT_SIZE[2]);
+	CharCreateCustomizationFrameBanner:SetTexCoord(BANNER_DEFAULT_TEXTURE_COORDS[1], BANNER_DEFAULT_TEXTURE_COORDS[2], BANNER_DEFAULT_TEXTURE_COORDS[3], BANNER_DEFAULT_TEXTURE_COORDS[4]);
+
+	-- check each button and hide it if there are no values select
+	local resize = 0;
+	local lastGood = 0;
+	local isSkinVariantHair = GetSkinVariationIsHairColor(CharacterCreate.selectedRace);
+	local isDefaultSet = 0;
+	local checkedButton = 1;
+
+	-- check if this was set, if not, default to 1
+	if ( CharacterCreateFrame.customizationType == 0 or CharacterCreateFrame.customizationType == nil ) then
+		CharacterCreateFrame.customizationType = 1;
+	end
+	for i=1, NUM_CHAR_CUSTOMIZATIONS, 1 do
+		if ( ( GetNumFeatureVariationsForType(i) <= 1 ) or ( isSkinVariantHair and i == CHAR_CUSTOMIZE_HAIR_COLOR ) ) then
+			resize = resize + 1;
+			_G["CharCreateCustomizationButton"..i]:Hide();
+		else
+			_G["CharCreateCustomizationButton"..i]:Show();
+			_G["CharCreateCustomizationButton"..i]:SetChecked(0); -- we will handle default selection
+			-- this must be done since a selected button can 'disappear' when swapping genders
+			if ( isDefaultSet == 0 and CharacterCreateFrame.customizationType == i) then
+				isDefaultSet = 1;
+				checkedButton = i;
+			end
+			-- set your anchor to be the last good, this currently means button 1 HAS to be shown
+			if (i > 1) then  
+				_G["CharCreateCustomizationButton"..i]:SetPoint( "TOP",_G["CharCreateCustomizationButton"..lastGood]:GetName() , "BOTTOM");
+			end
+			lastGood = i;
+		end
+	end
+
+	if (isDefaultSet == 0) then 
+		CharacterCreateFrame.customizationType = lastGood;
+		checkedButton = lastGood;
+	end
+	_G["CharCreateCustomizationButton"..checkedButton]:SetChecked(1);
+
+	if (resize > 0) then
+	-- we need to resize and remap the banner texture
+		local buttonx, buttony = CharCreateCustomizationButton1:GetSize()
+		local screenamount = resize*buttony;
+		print(screenamount);
+		local frameX, frameY = CharCreateCustomizationFrameBanner:GetSize();
+		local pctShrink = .2*resize; 
+		local uvXDefaultSize = BANNER_DEFAULT_TEXTURE_COORDS[2] - BANNER_DEFAULT_TEXTURE_COORDS[1];
+		local uvYDefaultSize = BANNER_DEFAULT_TEXTURE_COORDS[4] - BANNER_DEFAULT_TEXTURE_COORDS[3];
+		local newYUV = pctShrink*uvYDefaultSize + BANNER_DEFAULT_TEXTURE_COORDS[3];
+		-- end coord stay the same
+		CharCreateCustomizationFrameBanner:SetTexCoord(BANNER_DEFAULT_TEXTURE_COORDS[1], BANNER_DEFAULT_TEXTURE_COORDS[2], newYUV, BANNER_DEFAULT_TEXTURE_COORDS[4]);
+		print(pctShrink);
+		CharCreateCustomizationFrameBanner:SetSize(frameX, frameY - screenamount);
+		print(CharCreateCustomizationFrameBanner:GetTexCoord());
+	end
+	
+	CharCreateRandomizeButton:SetPoint("TOP", _G["CharCreateCustomizationButton"..lastGood]:GetName(), "BOTTOM", 0, 0);
+end
+
 function CharacterClass_OnClick(self, id)
 	if( self:IsEnabled() ) then
 		PlaySound("gsCharacterCreationClass");
@@ -690,6 +757,7 @@ function SetCharacterGender(sex)
 
 	-- Update preview models if on customization step
 	if ( CharCreatePreviewFrame:IsShown() ) then
+		CharCreateCustomizationFrame_OnShow(); -- buttons may need to reset for dirty Pandarens
 		CharCreate_PrepPreviewModels(true);
 		CharCreate_ResetFeaturesDisplay();
 	end

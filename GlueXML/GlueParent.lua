@@ -1,4 +1,4 @@
-CurrentGlueMusic = "GS_Cataclysm";
+CurrentGlueMusic = "MUS_50_HeartofPandaria_MainTitle";
 
 GlueCreditsSoundKits = { };
 GlueCreditsSoundKits[1] = "Menu-Credits01";
@@ -443,7 +443,7 @@ function SetLoginScreenModel(model)
 	model:SetSequence(0);
 	
 	local lowResBG = "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_LowBandwidth.m2";
-	local highResBG = "Interface\\Glues\\Models\\UI_MainMenu_Cataclysm\\UI_MainMenu_Cataclysm.m2";
+	local highResBG = "Interface\\Glues\\Models\\UI_MainMenu_Pandaria\\UI_MainMenu_Pandaria.m2";
 	local background = GetLoginScreenBackground(highResBG, lowResBG);
 							
 	model:SetModel(background);	
