@@ -1323,17 +1323,17 @@
 						<Anchors>
 							<Anchor point="TOPLEFT" x="3" y="-3"/>
 						</Anchors>
-            <Scripts>
-              <OnShow>
-                  CharCreateCustomizationFrame_OnShow();
-              </OnShow>
-            </Scripts>
-            <Layers>
+						<Scripts>
+							<OnShow>
+								CharCreateCustomizationFrame_OnShow();
+							</OnShow>
+						</Scripts>
+						<Layers>
 							<Layer level="BACKGROUND">
 								<Texture name="$parentBanner" file="Interface\Glues\CharacterCreate\UI-CharacterCreate-Banner">
 									<Size x="200" y="308"/>
-                  <TexCoords left="0.109375" right="0.890625" top="0.201171875" bottom="0.80078125"/>
-                  <Anchors>
+									<TexCoords left="0.109375" right="0.890625" top="0.201171875" bottom="0.80078125"/>
+									<Anchors>
 										<Anchor point="TOP"  x="0" y="18" relativePoint="BOTTOM"/>
 									</Anchors>
 								</Texture>
@@ -1530,9 +1530,13 @@
 									<OnLoad>
 										SetClampedTextureRotation(self.arrow, 90);
 									</OnLoad>
-									<OnClick>
+									<OnMouseDown>
 										CharCreate_ChangeFeatureVariation(-1);
-									</OnClick>
+										CharacterCreateWhileMouseDown_OnMouseDown(-1);
+									</OnMouseDown>
+									<OnMouseUp>
+										CharacterCreateWhileMouseDown_OnMouseUp()
+									</OnMouseUp>
 								</Scripts>
 							</Button>
 							<Button name="CharCreateStyleDownButton" inherits="CharCreateChangeStyleButtonTemplate">
@@ -1543,9 +1547,13 @@
 									<OnLoad>
 										SetClampedTextureRotation(self.arrow, 270);
 									</OnLoad>
-									<OnClick>
+									<OnMouseDown>
 										CharCreate_ChangeFeatureVariation(1);
-									</OnClick>
+										CharacterCreateWhileMouseDown_OnMouseDown(1);
+									</OnMouseDown>
+									<OnMouseUp>
+										CharacterCreateWhileMouseDown_OnMouseUp()
+									</OnMouseUp>
 								</Scripts>
 							</Button>
 							<ScrollFrame parentKey="scrollFrame">
@@ -1708,7 +1716,7 @@
 						CharacterCreateFrame_OnMouseUp(button);
 					</OnMouseUp>
 					<OnUpdate>
-						CharacterCreateFrame_OnUpdate();
+						CharacterCreateFrame_OnUpdate(self, elapsed);
 					</OnUpdate>
 					<OnMouseWheel>
 						if ( CharCreatePreviewFrame:IsShown() ) then

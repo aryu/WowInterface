@@ -639,6 +639,7 @@ end
 
 function CharacterSelect_ChangeRealm()
 	PlaySound("gsCharacterSelectionDelCharacter");
+	CharacterSelect_SaveCharacterOrder();
 	RequestRealmList(1);
 end
 

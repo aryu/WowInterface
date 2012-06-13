@@ -120,6 +120,7 @@ CHAR_CUSTOMIZE_HAIR_COLOR = 4;
 
 function CharacterCreate_OnLoad(self)
 	self:RegisterEvent("RANDOM_CHARACTER_NAME_RESULT");
+	self:RegisterEvent("GLUE_UPDATE_EXPANSION_LEVEL");
 
 	self:SetSequence(0);
 	self:SetCamera(0);
@@ -273,6 +274,12 @@ function CharacterCreate_OnEvent(event, arg1, arg2, arg3)
 		CharacterCreateRandomName:Enable();
 		CharCreateOkayButton:Enable();
 		PlaySound("gsCharacterCreationLook");
+	elseif ( event == "GLUE_UPDATE_EXPANSION_LEVEL" ) then
+		-- Expansion level changed while online, so enable buttons as needed
+		if ( CharacterCreateFrame:IsShown() ) then
+			CharacterCreateEnumerateRaces(GetAvailableRaces());
+			CharacterCreateEnumerateClasses(GetAvailableClasses());
+		end
 	end
 end
 
@@ -289,7 +296,7 @@ function CharacterCreateFrame_OnMouseUp(button)
 	end
 end
 
-function CharacterCreateFrame_OnUpdate()
+function CharacterCreateFrame_OnUpdate(self, elapsed)
 	if ( CHARACTER_CREATE_ROTATION_START_X ) then
 		local x = GetCursorPosition();
 		local diff = (x - CHARACTER_CREATE_ROTATION_START_X) * CHARACTER_ROTATION_CONSTANT;
@@ -297,6 +304,7 @@ function CharacterCreateFrame_OnUpdate()
 		SetCharacterCreateFacing(GetCharacterCreateFacing() + diff);
 		CharCreate_RotatePreviews();
 	end
+	CharacterCreateWhileMouseDown_Update(elapsed);
 end
 
 function CharacterCreateEnumerateRaces(...)
@@ -758,7 +766,7 @@ function SetCharacterGender(sex)
 	-- Update preview models if on customization step
 	if ( CharCreatePreviewFrame:IsShown() ) then
 		CharCreateCustomizationFrame_OnShow(); -- buttons may need to reset for dirty Pandarens
-		CharCreate_PrepPreviewModels(true);
+		CharCreate_PrepPreviewModels();
 		CharCreate_ResetFeaturesDisplay();
 	end
 end
@@ -934,45 +942,30 @@ end
 
 function CharCreate_PrepPreviewModels(reloadModels)
 	local displayFrame = CharCreatePreviewFrame;
-	local race = GetSelectedRace();
-	local gender = GetSelectedSex();
-	local _, class = GetSelectedClass();
+
 	-- clear models if rebuildPreviews got flagged
 	local rebuildPreviews = displayFrame.rebuildPreviews;
 	displayFrame.rebuildPreviews = nil;
-	local hasModel = not rebuildPreviews and not reloadModels;
-	-- need to reload models if gender or race was changed, or class was swapped to or from DK
-	local classSwap = ( class == "DEATHKNIGHT" or displayFrame.lastClass == "DEATHKNIGHT" ) and ( class ~= displayFrame.lastClass );	
-	if ( displayFrame.lastRace ~= race or displayFrame.lastGender ~= gender or classSwap ) then
-		displayFrame.lastRace = race;
-		displayFrame.lastGender = gender;
-		displayFrame.lastClass = class;
-		hasModel = false;
+
+	-- need to reload models class was swapped to or from DK
+	local classSwap = false;
+	local _, class = GetSelectedClass();
+	if ( class == "DEATHKNIGHT" or displayFrame.lastClass == "DEATHKNIGHT" ) and ( class ~= displayFrame.lastClass ) then 
+		classSwap = true;
 	end
-	-- always clear the featureType, maybe clear the model
+
+	-- always clear the featureType
 	for index, previewFrame in pairs(displayFrame.previews) do
-		previewFrame.hasModel = hasModel;
 		previewFrame.featureType = 0;
-		-- have to reassign displayFrame
+		-- force model reload if class changed
+		if ( classSwap ) then
+			previewFrame.race = nil;
+			previewFrame.gender = nil;
+		end
 		if ( rebuildPreviews ) then
 			SetPreviewFrame(previewFrame.model:GetName(), index);
 		end
 	end
-
-	-- now save some global settings
-
-	-- HACK: Worgen fix for portrait camera position
-	displayFrame.cameraID = 0;
-	if ( race == WORGEN_RACE_ID and gender == SEX_MALE and not IsViewingAlteredForm() ) then
-		displayFrame.cameraID = 1;
-	end
-
-	-- get data for target/camera/light
-	local _, raceFileName = GetNameForRace();
-	if ( IsViewingAlteredForm() ) then
-		raceFileName = raceFileName.."Alt";
-	end
-	displayFrame.config = MODEL_CAMERA_CONFIG[gender][raceFileName];
 end
 
 function CharCreate_DisplayPreviewModels(selectionIndex)
@@ -984,6 +977,22 @@ function CharCreate_DisplayPreviewModels(selectionIndex)
 	local previews = displayFrame.previews;
 	local numVariations = GetNumFeatureVariations();
 	local currentFeatureType = CharacterCreateFrame.customizationType;
+
+	local race = GetSelectedRace();
+	local gender = GetSelectedSex();
+	
+	-- HACK: Worgen fix for portrait camera position
+	local cameraID = 0;
+	if ( race == WORGEN_RACE_ID and gender == SEX_MALE and not IsViewingAlteredForm() ) then
+		cameraID = 1;
+	end
+
+	-- get data for target/camera/light
+	local _, raceFileName = GetNameForRace();
+	if ( IsViewingAlteredForm() ) then
+		raceFileName = raceFileName.."Alt";
+	end
+	local config = MODEL_CAMERA_CONFIG[gender][raceFileName];
 
 	-- selection index is the center preview
 	-- there are 2 previews above and 2 below, and will pad it out to 1 more on each side, for a total of 7 previews to set up
@@ -1001,14 +1010,14 @@ function CharCreate_DisplayPreviewModels(selectionIndex)
 				SetPreviewFrame(previewFrame.model:GetName(), index);
 			end
 			-- load model if needed, may have been cleared by different race/gender selection
-			if ( not previewFrame.hasModel ) then
+			if ( previewFrame.race ~= race or previewFrame.gender ~= gender ) then
 				SetPreviewFrameModel(index);
-				previewFrame.hasModel = true;
+				previewFrame.race = race;
+				previewFrame.gender = gender;
 				-- apply settings
 				local model = previewFrame.model;
-				model:SetCustomCamera(displayFrame.cameraID);
+				model:SetCustomCamera(cameraID);
 				local scale = model:GetWorldScale();
-				local config = displayFrame.config;
 				model:SetCameraTarget(config.tx * scale, config.ty * scale, config.tz * scale);
 				model:SetCameraDistance(config.distance * scale);
 				local cx, cy, cz = model:GetCameraPosition();
@@ -1153,5 +1162,27 @@ function CharCreatePreviewFrame_UpdateStyleButtons()
 	else
 		CharCreateStyleDownButton:SetEnabled(true);
 		CharCreateStyleDownButton.arrow:SetDesaturated(false);
+	end
+end
+
+local TotalTime = 0;
+local KeepScrolling = nil;
+local TIME_TO_SCROLL = 0.5;
+function CharacterCreateWhileMouseDown_OnMouseDown(direction)
+	TIME_TO_SCROLL = 0.5;
+	TotalTime = 0;
+	KeepScrolling = direction;
+end
+function CharacterCreateWhileMouseDown_OnMouseUp()
+	KeepScrolling = nil;
+end
+function CharacterCreateWhileMouseDown_Update(elapsed)
+	if ( KeepScrolling ) then
+		TotalTime = TotalTime + elapsed;
+		if ( TotalTime >= TIME_TO_SCROLL ) then
+			CharCreate_ChangeFeatureVariation(KeepScrolling);
+			TIME_TO_SCROLL = 0.25;
+			TotalTime = 0;
+		end
 	end
 end

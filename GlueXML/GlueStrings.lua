@@ -1052,6 +1052,7 @@ VRN_NEEDS_MACOS_10_6_4 = "Requires Mac OS X 10.6.4 or above";
 VRN_NEEDS_MACOS_10_6_5 = "Requires Mac OS X 10.6.5 or above";
 VRN_NOMULTISAMPLE = "Requires the multisample setting to be 1x";
 VRN_UNSUPPORTED = "Unsupported on your system";
+VRN_WINDOWS_32BIT = "Requires a 64 bit version of Windows.";
 VRN_WINDOWS_UNSUPPORTED = "Unsupported on Windows";
 WARLOCK_DISABLED = "You must choose a different race to be this class.";
 WARRIOR_DISABLED = "You must choose a different race to be this class.";
