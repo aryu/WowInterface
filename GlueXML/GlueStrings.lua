@@ -397,6 +397,7 @@ CREDITS_WOW_BC = "Burning Crusade Credits";
 CREDITS_WOW_CC = "Cataclysm Credits";
 CREDITS_WOW_CLASSIC = "World of Warcraft Credits";
 CREDITS_WOW_LK = "Wrath of the Lich King Credits";
+CREDITS_WOW_MOP = "Mists of Pandaria Credits";
 CRIT = "CRIT";
 CSTATUS_AUTHENTICATING = "Authenticating";
 CSTATUS_CONNECTING = "Connecting to server...";

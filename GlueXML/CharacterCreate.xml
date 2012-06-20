@@ -1302,6 +1302,7 @@
 						</Layers>
 						<Scripts>
 							<OnClick>
+								PlaySound("igMainMenuOptionCheckBoxOn");
 								if ( self.infoShown ) then
 									self.infoShown = nil;
 									CharCreateMoreInfoButtonTopGlow:Hide();

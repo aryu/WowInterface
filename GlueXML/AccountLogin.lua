@@ -201,7 +201,7 @@ function AccountLogin_LaunchCommunitySite()
 end
 
 function AccountLogin_Credits()
-	CreditsFrame.creditsType = 4;
+	CreditsFrame.creditsType = 5;
 	PlaySound("gsTitleCredits");
 	SetGlueScreen("credits");
 	CinematicsFrame:Hide();
