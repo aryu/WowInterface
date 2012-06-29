@@ -882,7 +882,8 @@ function CharacterChangeFixup()
 				end
 			elseif ( PAID_SERVICE_TYPE == PAID_RACE_CHANGE ) then
 				local faction = GetFactionForRace(PaidChange_GetCurrentRaceIndex());
-				if ( (i == PaidChange_GetCurrentRaceIndex()) or ((GetFactionForRace(i) == faction) and (IsRaceClassValid(i,CharacterCreate.selectedClass))) ) then
+				local neutral = IsNeutralRace(PaidChange_GetCurrentRaceIndex());
+				if ( (i == PaidChange_GetCurrentRaceIndex()) or ((GetFactionForRace(i) == faction or neutral or IsNeutralRace(i)) and (IsRaceClassValid(i,CharacterCreate.selectedClass))) ) then
 					allow = true
 				end
 			elseif ( PAID_SERVICE_TYPE == PAID_CHARACTER_CUSTOMIZATION ) then
