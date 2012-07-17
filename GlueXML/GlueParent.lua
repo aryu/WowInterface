@@ -1,5 +1,3 @@
-CurrentGlueMusic = "MUS_50_HeartofPandaria_MainTitle";
-
 GlueCreditsSoundKits = { };
 GlueCreditsSoundKits[1] = "Menu-Credits01";
 GlueCreditsSoundKits[2] = "Menu-Credits02";
@@ -53,9 +51,10 @@ GlueAmbienceTracks["DARKPORTAL"] = "GlueScreenIntro";
 GlueAmbienceTracks["DEATHKNIGHT"] = "GlueScreenIntro";
 GlueAmbienceTracks["CHARACTERSELECT"] = "GlueScreenIntro";
 GlueAmbienceTracks["PANDAREN"] = "AMB_GlueScreen_Pandaren";
-GlueAmbienceTracks["HORDE"] = "GlueScreenIntro";
-GlueAmbienceTracks["ALLIANCE"] = "GlueScreenIntro";
-GlueAmbienceTracks["PANDARENCHARACTERSELECT"] = "GlueScreenIntro";
+GlueAmbienceTracks["HORDE"] = "AMB_50_GlueScreen_HORDE";
+GlueAmbienceTracks["ALLIANCE"] = "AMB_50_GlueScreen_ALLIANCE";
+GlueAmbienceTracks["NEUTRAL"] = "AMB_50_GlueScreen_PANDAREN_NEUTRAL";
+GlueAmbienceTracks["PANDARENCHARACTERSELECT"] = "AMB_50_GlueScreen_PANDAREN_NEUTRAL";
 
 -- indicies for adding lights ModelFFX:Add*Light
 LIGHT_LIVE  = 0;
@@ -90,6 +89,51 @@ SEX_NONE = 1;
 SEX_MALE = 2;
 SEX_FEMALE = 3;
 
+--Logos
+EXPANSION_LOGOS = {
+	TRIAL = "Interface\\Glues\\Common\\Glues-WoW-StarterLogo",
+	[1] = "Interface\\Glues\\Common\\Glues-WoW-ClassicLogo",
+	[2] = "Interface\\Glues\\Common\\Glues-WoW-WotLKLogo",
+	[3] = "Interface\\Glues\\Common\\Glues-WoW-CCLogo",
+	[4] = "Interface\\Glues\\Common\\Glues-WoW-MPLogo",
+	--When adding entries to here, make sure to update the zhTW and zhCN localization files.
+};
+
+--Music
+EXPANSION_GLUE_MUSIC = {
+	TRIAL = "GS_Cataclysm",
+	[1] = "GS_Cataclysm",
+	[2] = "GS_Cataclysm",
+	[3] = "GS_Cataclysm",
+	[4] = "MUS_50_HeartofPandaria_MainTitle",
+}
+
+--Backgrounds
+EXPANSION_HIGH_RES_BG = {
+	TRIAL = "Interface\\Glues\\Models\\UI_MainMenu_Cataclysm\\UI_MainMenu_Cataclysm.m2",
+	[1] = "Interface\\Glues\\Models\\UI_MainMenu_Cataclysm\\UI_MainMenu_Cataclysm.m2",
+	[2] = "Interface\\Glues\\Models\\UI_MainMenu_Cataclysm\\UI_MainMenu_Cataclysm.m2",
+	[3] = "Interface\\Glues\\Models\\UI_MainMenu_Cataclysm\\UI_MainMenu_Cataclysm.m2",
+	[4] = "Interface\\Glues\\Models\\UI_MainMenu_Pandaria\\UI_MainMenu_Pandaria.m2",
+}
+
+EXPANSION_LOW_RES_BG = {
+	TRIAL =  "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_Cata_LowBandwidth.m2",
+	[1] =  "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_Cata_LowBandwidth.m2",
+	[2] =  "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_Cata_LowBandwidth.m2",
+	[3] =  "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_Cata_LowBandwidth.m2",
+	[4] =  "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_LowBandwidth.m2",
+}
+
+--Credits titles
+CREDITS_TITLES = { --Note: These are off by 1 from the other expansion tables
+	CREDITS_WOW_CLASSIC,
+	CREDITS_WOW_BC,
+	CREDITS_WOW_LK,
+	CREDITS_WOW_CC,
+	CREDITS_WOW_MOP,
+}
+
 -- replace the C functions with local lua versions
 function getglobal(varr)
 	return _G[varr];
@@ -120,7 +164,7 @@ function SetGlueScreen(name)
 			PlayCreditsMusic( GlueCreditsSoundKits[CreditsFrame.creditsType] );
 			StopGlueAmbience();
 		elseif ( name ~= "movie" ) then
-			PlayGlueMusic(CurrentGlueMusic);
+			PlayGlueMusic(EXPANSION_GLUE_MUSIC[GetClientDisplayExpansionLevel()]);
 			if (name == "login") then
 				PlayGlueAmbience(GlueAmbienceTracks["DARKPORTAL"], 4.0);
 			end
@@ -173,13 +217,15 @@ function GlueParent_OnEvent(event, arg1, arg2, arg3)
 	elseif ( event == "SET_GLUE_SCREEN" ) then
 		GlueScreenExit(GetCurrentGlueScreenName(), arg1);
 	elseif ( event == "START_GLUE_MUSIC" ) then
-		PlayGlueMusic(CurrentGlueMusic);
+		PlayGlueMusic(EXPANSION_GLUE_MUSIC[GetClientDisplayExpansionLevel()]);
 		PlayGlueAmbience(GlueAmbienceTracks["DARKPORTAL"], 4.0);
 	elseif ( event == "DISCONNECTED_FROM_SERVER" ) then
 		TokenEntry_Cancel(TokenEnterDialog);
 		SetGlueScreen("login");
 		if ( arg1 == 4 ) then
 			GlueDialog_Show("PARENTAL_CONTROL");
+		elseif ( arg1 == 5 ) then
+			GlueDialog_Show("STREAMING_ERROR");
 		else
 			GlueDialog_Show("DISCONNECTED");
 		end
@@ -443,9 +489,10 @@ function SetLoginScreenModel(model)
 	model:SetCamera(0);
 	model:SetSequence(0);
 	
-	local lowResBG = "Interface\\Glues\\Models\\UI_MainMenu_LowBandwidth\\UI_MainMenu_LowBandwidth.m2";
-	local highResBG = "Interface\\Glues\\Models\\UI_MainMenu_Pandaria\\UI_MainMenu_Pandaria.m2";
+	local expansionLevel = GetClientDisplayExpansionLevel();
+	local lowResBG = EXPANSION_LOW_RES_BG[expansionLevel];
+	local highResBG = EXPANSION_HIGH_RES_BG[expansionLevel];
 	local background = GetLoginScreenBackground(highResBG, lowResBG);
 							
-	model:SetModel(background);	
+	model:SetModel(background, 1);	
 end

@@ -127,7 +127,7 @@
 						</FontString>
 					</Layer>
 					<Layer level="OVERLAY">
-						<Texture name="AccountLoginLogo" file="Interface\Glues\Common\Glues-WoW-MPLogo">
+						<Texture name="AccountLoginLogo">
 							<Size>
 								<AbsDimension x="256" y="128"/>
 							</Size>
@@ -1206,6 +1206,9 @@
 							<OnShow>
 								TokenEntryOkayButton_OnShow();
 							</OnShow>
+							<OnHide>
+								TokenEntryOkayButton_OnHide();
+							</OnHide>
 							<OnKeyDown>
 								TokenEntryOkayButton_OnKeyDown(self, key);
 							</OnKeyDown>

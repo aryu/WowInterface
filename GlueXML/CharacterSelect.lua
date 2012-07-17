@@ -20,15 +20,6 @@ local translationTable = { };	-- for character reordering: key = button index, v
 
 BLIZZCON_IS_A_GO = false;
 
-CHARACTER_SELECT_LOGOS = {
-	TRIAL = "Interface\\Glues\\Common\\Glues-WoW-StarterLogo",
-	[1] = "Interface\\Glues\\Common\\Glues-WoW-ClassicLogo",
-	[2] = "Interface\\Glues\\Common\\Glues-WoW-WotLKLogo",
-	[3] = "Interface\\Glues\\Common\\Glues-WoW-CCLogo",
-	[4] = "Interface\\Glues\\Common\\Glues-WoW-MPLogo",
-	--When adding entries to here, make sure to update the zhTW and zhCN localization files.
-};
-
 function CharacterSelect_OnLoad(self)
 	self:SetSequence(0);
 	self:SetCamera(0);
@@ -593,9 +584,10 @@ function CharacterSelect_SelectCharacter(index, noCreate)
 		end
 	else
 		local charID = GetCharIDFromIndex(index);
+		SelectCharacter(charID);
+
 		local backgroundFileName = GetSelectBackgroundModel(charID);
 		CharacterSelect.currentBGTag = SetBackgroundModel(CharacterSelect, backgroundFileName);
-		SelectCharacter(charID);
 	end
 end
 
@@ -890,8 +882,8 @@ function AccountUpgradePanel_Update(isExpanded)
 		tag = GetAccountExpansionLevel();
 	end
 
-	if ( CHARACTER_SELECT_LOGOS[tag] ) then
-		CharacterSelectLogo:SetTexture(CHARACTER_SELECT_LOGOS[tag]);
+	if ( EXPANSION_LOGOS[tag] ) then
+		CharacterSelectLogo:SetTexture(EXPANSION_LOGOS[tag]);
 		CharacterSelectLogo:Show();
 	else
 		CharacterSelectLogo:Hide();

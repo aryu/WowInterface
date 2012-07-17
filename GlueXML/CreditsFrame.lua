@@ -317,6 +317,8 @@ function CreditsFrame_OnShow(self)
 end
 
 function CreditsFrame_Update(self)
+	CreditsLogo:SetTexture(EXPANSION_LOGOS[GetClientDisplayExpansionLevel()]);
+
 	CreditsFrame_SetSpeed(CREDITS_SCROLL_RATE_PLAY);
 	CreditsScrollFrame:SetVerticalScroll(0);
 	CreditsScrollFrame.scroll = 0;
@@ -342,33 +344,21 @@ function CreditsFrame_Update(self)
 
 	-- Set Credits Text
 	CreditsText:SetText(GetCreditsText(CreditsFrame.creditsType));
-	
-	CreditsFrameSwitchButton1:Show();
-	CreditsFrameSwitchButton2:Show();
 
 	-- Set Switch Button Text
-	if ( CreditsFrame.creditsType == 5 ) then
-		CreditsFrameSwitchButton1:Hide();
-		CreditsFrameSwitchButton2:SetText(CREDITS_WOW_CC);
-		CreditsFrameSwitchButton2:SetID(4);
-	elseif ( CreditsFrame.creditsType == 4 ) then
-		CreditsFrameSwitchButton1:SetText(CREDITS_WOW_MOP);
-		CreditsFrameSwitchButton1:SetID(5);
-		CreditsFrameSwitchButton2:SetText(CREDITS_WOW_LK);
-		CreditsFrameSwitchButton2:SetID(3);
-	elseif ( CreditsFrame.creditsType == 3 ) then
-		CreditsFrameSwitchButton1:SetText(CREDITS_WOW_CC);
-		CreditsFrameSwitchButton1:SetID(4);
-		CreditsFrameSwitchButton2:SetText(CREDITS_WOW_BC);
-		CreditsFrameSwitchButton2:SetID(2);
-	elseif ( CreditsFrame.creditsType == 2 ) then
-		CreditsFrameSwitchButton1:SetText(CREDITS_WOW_LK);
-		CreditsFrameSwitchButton1:SetID(3);
-		CreditsFrameSwitchButton2:SetText(CREDITS_WOW_CLASSIC);
-		CreditsFrameSwitchButton2:SetID(1);
+	local creditsType = CreditsFrame.creditsType;
+	if ( creditsType < CreditsFrame.maxCreditsType ) then
+		CreditsFrameSwitchButton1:Show();
+		CreditsFrameSwitchButton1:SetText(CREDITS_TITLES[creditsType + 1]);
+		CreditsFrameSwitchButton1:SetID(creditsType + 1);
 	else
-		CreditsFrameSwitchButton1:SetText(CREDITS_WOW_BC);
-		CreditsFrameSwitchButton1:SetID(2);
+		CreditsFrameSwitchButton1:Hide();
+	end
+	if ( creditsType > 1 ) then
+		CreditsFrameSwitchButton2:Show();
+		CreditsFrameSwitchButton2:SetText(CREDITS_TITLES[creditsType - 1]);
+		CreditsFrameSwitchButton2:SetID(creditsType - 1);
+	else
 		CreditsFrameSwitchButton2:Hide();
 	end
 end
