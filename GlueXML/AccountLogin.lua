@@ -11,6 +11,7 @@ function AccountLogin_OnLoad(self)
 	self:RegisterEvent("CLIENT_TRIAL");
 	self:RegisterEvent("SCANDLL_ERROR");
 	self:RegisterEvent("SCANDLL_FINISHED");
+	self:RegisterEvent("LAUNCHER_LOGIN_STATUS_CHANGED");
 
 	local versionType, buildType, version, internalVersion, date = GetBuildInfo();
 	AccountLoginVersion:SetFormattedText(VERSION_TEMPLATE, versionType, version, internalVersion, buildType, date);
@@ -27,6 +28,7 @@ function AccountLogin_OnLoad(self)
 	TokenEnterDialogBackgroundEdit:SetBackdropColor(backdropColor[4], backdropColor[5], backdropColor[6]);
 
 	SetLoginScreenModel(AccountLogin);
+	AccountLogin_UpdateLoginType();
 end
 
 function AccountLogin_OnShow(self)	
@@ -163,6 +165,8 @@ function AccountLogin_OnEvent(event, arg1, arg2, arg3)
 			end
 			PlaySoundFile("Sound\\Creature\\MobileAlertBot\\MobileAlertBotIntruderAlert01.wav");
 		end
+	elseif ( event == "LAUNCHER_LOGIN_STATUS_CHANGED" ) then
+		AccountLogin_UpdateLoginType();
 	end
 end
 
@@ -356,6 +360,16 @@ function AccountLogin_UpdateAcceptButton(scrollFrame, isAcceptedFunc, noticeType
 		end
 	end
 end																
+
+function AccountLogin_UpdateLoginType()
+	if ( IsLauncherLogin() ) then
+		AccountLoginNormalLoginFrame:Hide();
+		AccountLoginLauncherLoginFrame:Show();
+	else
+		AccountLoginNormalLoginFrame:Show();
+		AccountLoginLauncherLoginFrame:Hide();
+	end
+end
 
 function ChangedOptionsDialog_OnShow(self)
 	if ( not ShowChangedOptionWarnings() ) then

@@ -590,7 +590,7 @@ function CharacterCreate_Finish()
 	else
 		-- if using templates, pandaren must pick a faction
 		local _, faction = GetFactionForRace(CharacterCreate.selectedRace);
-		if ( IsUsingCharacterTemplate() and ( faction ~= "Alliance" and faction ~= "Horde" ) ) then
+		if ( ( IsUsingCharacterTemplate() or IsForcingCharacterTemplate() ) and ( faction ~= "Alliance" and faction ~= "Horde" ) ) then
 			CharacterTemplateConfirmDialog:Show();
 		else
 			CreateCharacter(CharacterCreateNameEdit:GetText());
@@ -1249,7 +1249,7 @@ function PandarenFactionButtons_Show()
 	-- set the texture
 	PandarenFactionButtons_SetTextures();
 	-- set selected button
-	local faction = PaidChange_GetCurrentFaction();
+	local _, faction = PaidChange_GetCurrentFaction();
 	-- deselect first in case of multiple pandaren faction changes
 	PandarenFactionButtons_ClearSelection();
 	frame[faction.."Button"]:SetChecked(1);
