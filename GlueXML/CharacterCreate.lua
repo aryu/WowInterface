@@ -985,18 +985,17 @@ function CharCreate_PrepPreviewModels(reloadModels)
 	displayFrame.rebuildPreviews = nil;
 
 	-- need to reload models class was swapped to or from DK
-	local classSwap = false;
 	local _, class = GetSelectedClass();
 	if ( class == "DEATHKNIGHT" or displayFrame.lastClass == "DEATHKNIGHT" ) and ( class ~= displayFrame.lastClass ) then 
-		classSwap = true;
+		reloadModels = true;
 	end
 	displayFrame.lastClass = class;
 
 	-- always clear the featureType
 	for index, previewFrame in pairs(displayFrame.previews) do
 		previewFrame.featureType = 0;
-		-- force model reload if class changed
-		if ( reloadModels or classSwap ) then
+		-- force model reload in some cases
+		if ( reloadModels or rebuildPreviews ) then
 			previewFrame.race = nil;
 			previewFrame.gender = nil;
 		end
