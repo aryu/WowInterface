@@ -491,27 +491,17 @@
 									</OnClick>
 								</Scripts>
 							</Button>
-							<Frame name="AccountLoginLauncherLoggedInNotice">
-								<Size x="280" y="80"/>
+							<Frame name="AccountLoginLauncherLoggedInNotice" inherits="SoftBlackBGTemplate">
+								<Size x="260" y="80"/>
 								<Anchors>
 									<Anchor point="BOTTOM" relativeTo="AccountLoginLauncherPlayButton" relativePoint="TOP" x="0" y="15"/>
 								</Anchors>
-								<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
-									<BackgroundInsets>
-										<AbsInset left="11" right="11" top="11" bottom="11"/>
-									</BackgroundInsets>
-									<TileSize>
-										<AbsValue val="32"/>
-									</TileSize>
-									<EdgeSize>
-										<AbsValue val="32"/>
-									</EdgeSize>
-								</Backdrop>
 								<Layers>
 									<Layer level="ARTWORK">
-										<FontString inherits="GlueFontNormal" text="YOU_ARE_LOGGED_IN" justifyH="CENTER" justifyV="MIDDLE" setAllPoints="true">
+										<FontString inherits="GlueFontNormalLarge" text="YOU_ARE_LOGGED_IN" justifyH="CENTER" justifyV="MIDDLE">
 											<Anchors>
-												<Anchor point="CENTER"/>
+												<Anchor point="TOPLEFT" x="5" y="-5"/>
+												<Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
 											</Anchors>
 										</FontString>
 									</Layer>
