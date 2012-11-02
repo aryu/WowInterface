@@ -162,6 +162,7 @@ BILLING_TIME_LEFT_LAST_DAY = "Your play time will expire in less than 1 day.";
 BLIZZ_DISCLAIMER = "Copyright 2004-2012  Blizzard Entertainment. All Rights Reserved.";
 BLOCK = "BLOCK %.2f";
 BLOODELF_DISABLED = "Requires The Burning Crusade";
+BNET_ERROR_CODE_TITLE = "Battle.net Error #%d";
 BONUS_DAMAGE = "B.DMG %d";
 BONUS_HEALING = "B.HEAL %d";
 BURNING_CRUSADE = "The Burning Crusade";
