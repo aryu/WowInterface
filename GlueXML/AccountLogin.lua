@@ -572,7 +572,7 @@ function WoWAccountSelect_OnEvent(self, event)
 			str = str .. name .. "|";
 		end
 		
-		if ( str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
+		if ( not IsLauncherLogin() and str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
 			WoWAccountSelect_SelectAccount(selectedIndex);
 			return;
 		else

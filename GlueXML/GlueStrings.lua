@@ -235,7 +235,7 @@ CHAR_LOGIN_DISABLED = "Login for that race, class, or character is currently dis
 CHAR_LOGIN_DUPLICATE_CHARACTER = "A character with that name already exists";
 CHAR_LOGIN_FAILED = "Login failed";
 CHAR_LOGIN_IN_PROGRESS = "Entering the World of Warcraft";
-CHAR_LOGIN_LOCKED_BY_BILLING = "Character locked.  Contact Billing for more information.";
+CHAR_LOGIN_LOCKED_BY_BILLING = "<html><body><p align=\"CENTER\">Character Locked.\nSee <a href=\"https://www.battle.net/support/article/6592\">https://www.battle.net/support/article/6592</a> for more information.</p></body></html>";
 CHAR_LOGIN_LOCKED_BY_MOBILE_AH = "You cannot log in while using World of Warcraft Remote.";
 CHAR_LOGIN_LOCKED_FOR_TRANSFER = "You cannot log in until the character update process you recently initiated is complete. ";
 CHAR_LOGIN_NO_CHARACTER = "Character not found";
