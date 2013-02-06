@@ -572,7 +572,7 @@ function WoWAccountSelect_OnEvent(self, event)
 			str = str .. name .. "|";
 		end
 		
-		if ( not IsLauncherLogin() and str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
+		if ( str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
 			WoWAccountSelect_SelectAccount(selectedIndex);
 			return;
 		else
@@ -639,6 +639,20 @@ function WoWAccountSelect_Update()
 			button:Hide();
 		end
 	end
+
+	local offset = 0;
+	if ( IsLauncherLogin() ) then
+		offset = 20;
+		WoWAccountSelectDialogBackgroundSaveAccountButton:Show();
+		WoWAccountSelectDialogBackgroundSaveAccountText:Show();
+	else
+		WoWAccountSelectDialogBackgroundSaveAccountButton:Hide();
+		WoWAccountSelectDialogBackgroundSaveAccountText:Hide();
+	end
+	WoWAccountSelectDialogBackground:SetSize(275, 265 + offset);
+	WoWAccountSelectDialogBackgroundAcceptButton:SetPoint("BOTTOMLEFT", 8, 6 + offset);
+	WoWAccountSelectDialogBackgroundCancelButton:SetPoint("BOTTOMRIGHT", -8, 6 + offset);
+	WoWAccountSelectDialogBackgroundContainer:SetPoint("BOTTOMRIGHT", -16, 36 + offset);
 	
 	GlueScrollFrame_Update(WoWAccountSelectDialogBackgroundContainerScrollFrame, count, MAX_ACCOUNTS_DISPLAYED, ACCOUNTNAME_BUTTON_HEIGHT);
 end

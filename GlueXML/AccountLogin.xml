@@ -229,6 +229,7 @@
 										if ( accountName ~= "" and accountName ~= self:GetText() ) then
 											SetSavedAccountName("");
 											AccountLoginSaveAccountName:SetChecked(0);
+											WoWAccountSelectDialogBackgroundSaveAccountButton:SetChecked(0);
 										end
 										if ( self:GetText() ~= "" ) then
 											AccountLoginAccountEditFill:Hide();
@@ -457,6 +458,7 @@
 										else
 											PlaySound("igMainMenuOptionCheckBoxOn");
 										end
+										WoWAccountSelectDialogBackgroundSaveAccountButton:SetChecked(self:GetChecked());
 									</OnClick>
 								</Scripts>
 								<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
@@ -1311,6 +1313,11 @@
 												</Anchor>
 											</Anchors>
 										</FontString>
+										<FontString name="$parentSaveAccountText" inherits="GlueFontNormalSmall" text="SAVE_ACCOUNT_NAME">
+											<Anchors>
+												<Anchor point="BOTTOM" x="10" y="16"/>
+											</Anchors>
+										</FontString>
 									</Layer>
 								</Layers>
 								<Frames>
@@ -1452,6 +1459,34 @@
 											</OnClick>
 										</Scripts>
 									</Button>
+									<CheckButton name="$parentSaveAccountButton">
+										<Size x="20" y="20"/>
+										<Anchors>
+											<Anchor point="RIGHT" relativeTo="$parentSaveAccountText" relativePoint="LEFT"/>
+										</Anchors>
+										<Scripts>
+											<OnLoad>
+												if ( GetSavedAccountName() ~= "" ) then
+													self:SetChecked(1);
+												else
+													self:SetChecked(0);
+												end
+											</OnLoad>
+											<OnClick>
+												if ( self:GetChecked() ) then
+													PlaySound("igMainMenuOptionCheckBoxOff");
+												else
+													PlaySound("igMainMenuOptionCheckBoxOn");
+												end
+												AccountLoginSaveAccountName:SetChecked(self:GetChecked());
+											</OnClick>
+										</Scripts>
+										<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
+										<PushedTexture file="Interface\Buttons\UI-CheckBox-Down"/>
+										<HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD"/>
+										<CheckedTexture file="Interface\Buttons\UI-CheckBox-Check"/>
+										<DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled"/>
+									</CheckButton>
 								</Frames>
 							</Frame>
 						</Frames>
