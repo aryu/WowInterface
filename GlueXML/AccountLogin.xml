@@ -229,7 +229,6 @@
 										if ( accountName ~= "" and accountName ~= self:GetText() ) then
 											SetSavedAccountName("");
 											AccountLoginSaveAccountName:SetChecked(0);
-											WoWAccountSelectDialogBackgroundSaveAccountButton:SetChecked(0);
 										end
 										if ( self:GetText() ~= "" ) then
 											AccountLoginAccountEditFill:Hide();
@@ -458,7 +457,6 @@
 										else
 											PlaySound("igMainMenuOptionCheckBoxOn");
 										end
-										WoWAccountSelectDialogBackgroundSaveAccountButton:SetChecked(self:GetChecked());
 									</OnClick>
 								</Scripts>
 								<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
@@ -471,7 +469,7 @@
 					</Frame>
 					<Frame name="AccountLoginLauncherLoginFrame" setAllPoints="true" useParentLevel="true">
 						<Frames>
-							<Button name="AccountLoginLauncherChangeAccountButton" inherits="GlueButtonTemplateBlue" text="LOGOUT">
+							<Button name="AccountLoginLauncherLogoutButton" inherits="GlueButtonTemplateBlue" text="LOGOUT">
 								<Size x="220" y="45"/>
 								<Anchors>
 									<Anchor point="BOTTOM" x="0" y="170"/>
@@ -482,10 +480,23 @@
 									</OnClick>
 								</Scripts>
 							</Button>
+							<Button name="AccountLoginLauncherChangeAccountButton" inherits="GlueButtonTemplateBlue" text="CHANGE_ACCOUNT">
+								<Size x="220" y="45"/>
+								<Anchors>
+									<Anchor point="BOTTOM" relativeTo="AccountLoginLauncherLogoutButton" relativePoint="TOP" x="0" y="10"/>
+								</Anchors>
+								<Scripts>
+									<OnClick>
+										SetSavedAccountListSSO("");
+										WoWAccountSelectDialogBackgroundSaveAccountButton:SetChecked(false)
+										AttemptFastLogin();
+									</OnClick>
+								</Scripts>
+							</Button>
 							<Button name="AccountLoginLauncherPlayButton" inherits="GlueButtonTemplateBlue" text="PLAY">
 								<Size x="220" y="45"/>
 								<Anchors>
-									<Anchor point="BOTTOM" relativeTo="AccountLoginLauncherChangeAccountButton" relativePoint="TOP" x="0" y="10"/>
+									<Anchor point="BOTTOM" relativeTo="AccountLoginLauncherLogoutButton" relativePoint="TOP" x="0" y="10"/>
 								</Anchors>
 								<Scripts>
 									<OnClick>
@@ -1466,7 +1477,7 @@
 										</Anchors>
 										<Scripts>
 											<OnLoad>
-												if ( GetSavedAccountName() ~= "" ) then
+												if ( GetSavedAccountListSSO() ~= "" ) then
 													self:SetChecked(1);
 												else
 													self:SetChecked(0);
@@ -1478,7 +1489,6 @@
 												else
 													PlaySound("igMainMenuOptionCheckBoxOn");
 												end
-												AccountLoginSaveAccountName:SetChecked(self:GetChecked());
 											</OnClick>
 										</Scripts>
 										<NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>

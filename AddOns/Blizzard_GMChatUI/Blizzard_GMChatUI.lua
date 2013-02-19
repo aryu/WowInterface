@@ -18,7 +18,7 @@ function GMChatFrame_OnLoad(self)
 		else
 			--error("Unhandled object type");
 		end
-		object:SetAlpha(0.4);
+		object:SetAlpha(0.6);
 	end
 	
 	self:RegisterEvent("CHAT_MSG_WHISPER");
@@ -135,11 +135,11 @@ function GMChatFrame_OnShow(self)
 	for _,gmName in ipairs(self.lastGM) do
 		ChatEdit_SetLastTellTarget(gmName, "WHISPER");
 	end
-	GMChatFrameEditBox:SetAttribute("tellTarget", ChatEdit_GetLastTellTarget());
-	GMChatFrameEditBox:SetAttribute("chatType", "WHISPER");
 	table.wipe(self.lastGM);
 	if ( self.lastGMForCVar ) then
 		SetCVar("lastTalkedToGM", self.lastGMForCVar);
+		GMChatFrameEditBox:SetAttribute("tellTarget", self.lastGMForCVar);
+		GMChatFrameEditBox:SetAttribute("chatType", "WHISPER");
 	end
 	
 	MicroButtonPulseStop(HelpMicroButton);	--Stop the buttons from pulsing.

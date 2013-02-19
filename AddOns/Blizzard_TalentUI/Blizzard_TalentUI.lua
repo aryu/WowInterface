@@ -447,15 +447,19 @@ function PlayerTalentFrame_OnHide()
 	end
 	wipe(talentTabWidthCache);
 	
+	local selection = PlayerTalentFrame_GetTalentSelections();
 	if ( not GetSpecialization() ) then
 		TalentMicroButtonAlert.Text:SetText(TALENT_MICRO_BUTTON_NO_SPEC);
 		TalentMicroButtonAlert:SetHeight(TalentMicroButtonAlert.Text:GetHeight()+42);
 		TalentMicroButtonAlert:Show();
 		StaticPopup_Hide("CONFIRM_LEARN_SPEC");
-	elseif ( PlayerTalentFrame_GetTalentSelections() ) then
-		TalentMicroButtonAlert.Text:SetText(TALENT_MICRO_BUTTON_UNSAVED_CHANGES);
-		TalentMicroButtonAlert:SetHeight(TalentMicroButtonAlert.Text:GetHeight()+42);
-		TalentMicroButtonAlert:Show();
+	elseif ( selection ) then
+		local name, iconTexture, tier, column, selected, available = GetTalentInfo(selection);
+		if (available) then
+			TalentMicroButtonAlert.Text:SetText(TALENT_MICRO_BUTTON_UNSAVED_CHANGES);
+			TalentMicroButtonAlert:SetHeight(TalentMicroButtonAlert.Text:GetHeight()+42);
+			TalentMicroButtonAlert:Show();
+		end
 	elseif ( GetNumUnspentTalents() > 0 ) then
 		TalentMicroButtonAlert.Text:SetText(TALENT_MICRO_BUTTON_UNSPENT_TALENTS);
 		TalentMicroButtonAlert:SetHeight(TalentMicroButtonAlert.Text:GetHeight()+42);
@@ -1416,13 +1420,16 @@ function PlayerTalentFrame_UpdateSpecFrame(self, spec)
 	-- disable Learn button
 	if ( self.isPet and disable ) then
 		self.learnButton:Enable();
-		UIFrameFlash(self.learnButton.Flash, 0.7, 0.7, -1);
+		self.learnButton.Flash:Show();
+		self.learnButton.FlashAnim:Play();
 	elseif ( playerTalentSpec or disable or UnitLevel("player") < SHOW_SPEC_LEVEL ) then
 		self.learnButton:Disable();
-		UIFrameFlashStop(self.learnButton.Flash);
+		self.learnButton.Flash:Hide();
+		self.learnButton.FlashAnim:Stop();
 	else
 		self.learnButton:Enable();
-		UIFrameFlash(self.learnButton.Flash, 0.7, 0.7, -1);
+		self.learnButton.Flash:Show();
+		self.learnButton.FlashAnim:Play();
 	end	
 	
 	if ( self.playLearnAnim ) then

@@ -26,7 +26,7 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<CheckButton parentKey="LFGBonusRepButton">
+			<CheckButton parentKey="LFGBonusRepButton" motionScriptsWhileDisabled="true">
 				<Size x="16" y="16"/>
 				<Anchors>
 					<Anchor point="RIGHT" relativeTo="$parentBackground" relativePoint="LEFT" x="-2" y="0"/>
@@ -41,9 +41,13 @@
 					<TexCoords left="0" right="0.5" top="0" bottom="0.5"/>
 				</CheckedTexture>
 				<Scripts>
-					<OnClick>
-						SetLFGBonusFactionID(self.factionID);
-					</OnClick>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText(LFG_BONUS_REPUTATION_TOOLTIP, nil, nil, nil, nil, true);
+						GameTooltip:Show();
+					</OnEnter>
+					<OnLeave function="GameTooltip_Hide"/>
+					<OnClick function="ReputationBarLFGBonusRepButton_OnClick"/>
 				</Scripts>
 			</CheckButton>
 			<Button name="$parentExpandOrCollapseButton">

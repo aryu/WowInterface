@@ -81,6 +81,7 @@ function AccountLogin_OnShow(self)
 	ACCOUNT_MSG_BODY_LOADED = false;
 	ACCOUNT_MSG_CURRENT_INDEX = nil;
 	CHARACTER_SELECT_BACK_FROM_CREATE = false;
+	AccountLogin_UpdateLoginType();
 end
 
 function AccountLogin_OnHide(self)
@@ -365,6 +366,16 @@ function AccountLogin_UpdateLoginType()
 	if ( IsLauncherLogin() ) then
 		AccountLoginNormalLoginFrame:Hide();
 		AccountLoginLauncherLoginFrame:Show();
+
+		if ( GetSavedAccountListSSO() ~= "" ) then
+			AccountLoginLauncherChangeAccountButton:Show();
+			AccountLoginLauncherPlayButton:SetPoint("BOTTOM", AccountLoginLauncherChangeAccountButton, "TOP", 0, 10);
+			AccountLoginLauncherLogoutButton:SetPoint("BOTTOM", AccountLoginLauncherLoginFrame, "BOTTOM", 0, 115);
+		else
+			AccountLoginLauncherChangeAccountButton:Hide();
+			AccountLoginLauncherPlayButton:SetPoint("BOTTOM", AccountLoginLauncherLogoutButton, "TOP", 0, 10);
+			AccountLoginLauncherLogoutButton:SetPoint("BOTTOM", AccountLoginLauncherLoginFrame, "BOTTOM", 0, 170);
+		end
 	else
 		AccountLoginNormalLoginFrame:Show();
 		AccountLoginLauncherLoginFrame:Hide();
@@ -562,38 +573,74 @@ end
 
 function WoWAccountSelect_OnEvent(self, event)
 	if ( event == "GAME_ACCOUNTS_UPDATED" ) then
-		local str, selectedIndex, selectedName = ""
-		for i = 1, GetNumGameAccounts() do
-			local name = GetGameAccountInfo(i);
-			if ( name == GlueDropDownMenu_GetText(AccountLoginDropDown) ) then
-				selectedName = name;
-				selectedIndex = i;
+		if ( IsLauncherLogin() ) then
+			--Construct the account list
+			local str = WoWAccountSelect_GetAccountList(nil);
+
+			local accountList = GetSavedAccountListSSO();
+			--If the constructed list doesn't match our old one, we're no longer saving
+			if ( str == string.gsub(accountList, "!", "") ) then
+				--Figure out which index is selected
+				local idx;
+				local list = {string.split("|", accountList)};
+				for k = 1, #list do
+					local v = list[k];
+					if ( string.sub(v, 1, 1) == "!" ) then
+						idx = k;
+					end
+				end
+
+				if ( idx ) then
+					WoWAccountSelect_SelectAccount(idx);
+					return;
+				end
 			end
-			str = str .. name .. "|";
-		end
-		
-		if ( str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
-			WoWAccountSelect_SelectAccount(selectedIndex);
-			return;
-		else
+				
 			self:Show();
+		else
+			local str, selectedIndex, selectedName = ""
+			for i = 1, GetNumGameAccounts() do
+				local name = GetGameAccountInfo(i);
+				if ( name == GlueDropDownMenu_GetText(AccountLoginDropDown) ) then
+					selectedName = name;
+					selectedIndex = i;
+				end
+				str = str .. name .. "|";
+			end
+			
+			if ( str == string.gsub(GetSavedAccountList(), "!", "") and selectedIndex ) then
+				WoWAccountSelect_SelectAccount(selectedIndex);
+				return;
+			else
+				self:Show();
+			end
 		end
 	else
 		self:Hide();
 	end
 end
 
-function WoWAccountSelect_SelectAccount(index)
-	if ( AccountLoginSaveAccountName:GetChecked() ) then
-		WowAccountSelect_UpdateSavedAccountNames(index);
+function WoWAccountSelect_SelectAccount(selectedIndex)
+	if ( IsLauncherLogin() ) then
+		if ( WoWAccountSelectDialogBackgroundSaveAccountButton:GetChecked() ) then
+			local str = WoWAccountSelect_GetAccountList(selectedIndex);
+			SetSavedAccountListSSO(str);
+		else
+			SetSavedAccountListSSO("");
+		end
 	else
-		SetSavedAccountList("");
+		if ( AccountLoginSaveAccountName:GetChecked() ) then
+			local str = WoWAccountSelect_GetAccountList(selectedIndex);
+			SetSavedAccountList(str);
+		else
+			SetSavedAccountList("");
+		end
 	end
 	WoWAccountSelectDialog:Hide();
-	SetGameAccount(index);
+	SetGameAccount(selectedIndex);
 end
 
-function WowAccountSelect_UpdateSavedAccountNames(selectedIndex)
+function WoWAccountSelect_GetAccountList(selectedIndex)
 	local count = GetNumGameAccounts();
 	
 	local str = ""
@@ -605,7 +652,7 @@ function WowAccountSelect_UpdateSavedAccountNames(selectedIndex)
 			str = str .. name .. "|";
 		end
 	end
-	SetSavedAccountList(str);
+	return str;
 end
 
 ACCOUNTNAME_BUTTON_HEIGHT = 20;

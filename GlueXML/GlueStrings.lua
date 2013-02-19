@@ -175,6 +175,7 @@ CATEGORY_DESCRIPTION = "Realm Category";
 CATEGORY_DESCRIPTION_TEXT = "A realm category refers to its geographical location. Players should generally choose the realm that is closest to them. This ensures the lowest amount of latency and provides the best possible game experience.";
 CHANGE = "Change";
 CHANGED_OPTIONS_WARNING_TITLE = "NOTE:";
+CHANGE_ACCOUNT = "Change Account";
 CHANGE_REALM = "Change Realm";
 CHARACTER_CREATE_ACCEPT = "Accept";
 CHARACTER_NAME = "Character Name";
