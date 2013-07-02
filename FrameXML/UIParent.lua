@@ -213,6 +213,7 @@ function UIParent_OnLoad(self)
 	self:RegisterEvent("MISSING_OUT_ON_LOOT");
 	self:RegisterEvent("SPELL_CONFIRMATION_PROMPT");
 	self:RegisterEvent("SPELL_CONFIRMATION_TIMEOUT");
+	self:RegisterEvent("SAVED_VARIABLES_TOO_LARGE");
 	
 	-- Events for auction UI handling
 	self:RegisterEvent("AUCTION_HOUSE_SHOW");
@@ -1051,6 +1052,9 @@ function UIParent_OnEvent(self, event, ...)
 		else
 			StaticPopup_Hide("SPELL_CONFIRMATION_PROMPT", spellID);
 		end
+	elseif ( event == "SAVED_VARIABLES_TOO_LARGE" ) then
+		local addonName = ...;
+		StaticPopup_Show("SAVED_VARIABLES_TOO_LARGE", addonName);
 	elseif ( event == "CONFIRM_DISENCHANT_ROLL" ) then
 		local texture, name, count, quality, bindOnPickUp = GetLootRollItemInfo(arg1);
 		local dialog = StaticPopup_Show("CONFIRM_LOOT_ROLL", ITEM_QUALITY_COLORS[quality].hex..name.."|r");
@@ -3887,9 +3891,13 @@ function RaidBrowser_IsEmpowered()
 	return (not IsInGroup()) or UnitIsGroupLeader("player");
 end
 
-function GetLFGMode(category)
+function GetLFGMode(category, lfgID)
+	if ( category ~= LE_LFG_CATEGORY_RF ) then
+		lfgID = nil; --HACK - RF works differently from everything else. You can queue for multiple RF slots with different ride tickets.
+	end
+
 	local proposalExists, id, typeID, subtypeID, name, texture, role, hasResponded, totalEncounters, completedEncounters, numMembers, isLeader, isHoliday, proposalCategory = GetLFGProposal();
-	local inParty, joined, queued, noPartialClear, achievements, lfgComment, slotCount = GetLFGInfoServer(category);
+	local inParty, joined, queued, noPartialClear, achievements, lfgComment, slotCount = GetLFGInfoServer(category, lfgID);
 	local roleCheckInProgress, slots, members, roleUpdateCategory = GetLFGRoleUpdate();
 
 	local partyCategory = nil;
@@ -3903,9 +3911,9 @@ function GetLFGMode(category)
 	if ( category == LE_LFG_CATEGORY_LFR ) then
 		empoweredFunc = RaidBrowser_IsEmpowered;
 	end
-	if ( proposalExists and not hasResponded and proposalCategory == category ) then
+	if ( proposalExists and not hasResponded and proposalCategory == category and (not lfgID or lfgID == id) ) then
 		return "proposal", "unaccepted";
-	elseif ( proposalExists and proposalCategory == category ) then
+	elseif ( proposalExists and proposalCategory == category and (not lfgID or lfgID == id) ) then
 		return "proposal", "accepted";
 	elseif ( queued ) then
 		return "queued", (empoweredFunc() and "empowered" or "unempowered");
@@ -3915,9 +3923,9 @@ function GetLFGMode(category)
 		return "listed", (empoweredFunc() and "empowered" or "unempowered");
 	elseif ( joined ) then
 		return "suspended", (empoweredFunc() and "empowered" or "unempowered");	--We are "joined" to LFG, but not actually queued right now.
-	elseif ( IsInGroup() and IsPartyLFG() and partyCategory == category ) then
+	elseif ( IsInGroup() and IsPartyLFG() and partyCategory == category and (not lfgID or lfgID == partySlot) ) then
 		return "lfgparty";
-	elseif ( IsPartyLFG() and IsInLFGDungeon() and partyCategory == category ) then
+	elseif ( IsPartyLFG() and IsInLFGDungeon() and partyCategory == category and (not lfgID or lfgID == partySlot) ) then
 		return "abandonedInDungeon";
 	end
 end
@@ -4190,5 +4198,20 @@ function PrintLootSpecialization()
 	if ( lootSpecChoice ) then
 		local info = ChatTypeInfo["SYSTEM"];
 		DEFAULT_CHAT_FRAME:AddMessage(lootSpecChoice, info.r, info.g, info.b, info.id);
+	end
+end
+
+function GetSmoothProgressChange(value, displayedValue, range, elapsed, minPerSecond, maxPerSecond)
+	maxPerSecond = maxPerSecond or 0.7;
+	minPerSecond = minPerSecond or 0.3;
+	minPerSecond = max(minPerSecond, 1/range);	--Make sure we're moving at least 1 unit/second (will only matter if our maximum power is 3 or less);
+	
+	local diff = displayedValue - value;
+	local diffRatio = diff / range;
+	local change = range * ((minPerSecond/abs(diffRatio) + maxPerSecond - minPerSecond) * diffRatio) * elapsed;
+	if ( abs(change) > abs(diff) or abs(diffRatio) < 0.01 ) then
+		return value;
+	else
+		return displayedValue - change;
 	end
 end

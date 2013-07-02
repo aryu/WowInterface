@@ -1,11 +1,5 @@
 MAX_RAID_FINDER_COOLDOWN_NAMES = 8;
 
-local function isRaidFinderDungeonDisplayable(id)
-	local name, typeID, subtypeID, minLevel, maxLevel, _, _, _, expansionLevel = GetLFGDungeonInfo(id);
-	local myLevel = UnitLevel("player");
-	return myLevel >= minLevel and myLevel <= maxLevel and EXPANSION_LEVEL >= expansionLevel;
-end
-
 function RaidFinderFrame_OnLoad(self)
 	self:RegisterEvent("LFG_LOCK_INFO_RECEIVED");
 end
@@ -219,13 +213,17 @@ function RaidFinderQueueFrame_SetRaid(value)
 		UIDropDownMenu_SetText(RaidFinderQueueFrameSelectionDropDown, "");
 	end
 	RaidFinderQueueFrameRewards_UpdateFrame();
+	LFG_UpdateAllRoleCheckboxes();
+	LFG_UpdateFindGroupButtons();
+	LFG_UpdateRolesChangeable();
 end
 
 function RaidFinderQueueFrame_Join()
 	if ( RaidFinderQueueFrame.raid ) then
 		ClearAllLFGDungeons(LE_LFG_CATEGORY_RF);
 		SetLFGDungeon(LE_LFG_CATEGORY_RF, RaidFinderQueueFrame.raid);
-		JoinLFG(LE_LFG_CATEGORY_RF);
+		--JoinLFG(LE_LFG_CATEGORY_RF);
+		JoinSingleLFG(LE_LFG_CATEGORY_RF, RaidFinderQueueFrame.raid);
 	end
 end
 
@@ -245,7 +243,7 @@ function RaidFinderQueueFrameRewards_UpdateFrame()
 end
 
 function RaidFinderFrameFindRaidButton_Update()
-	local mode, subMode = GetLFGMode(LE_LFG_CATEGORY_RF);
+	local mode, subMode = GetLFGMode(LE_LFG_CATEGORY_RF, RaidFinderQueueFrame.raid);
 	if ( mode == "queued" or mode == "rolecheck" or mode == "proposal" or mode == "suspended" ) then
 		RaidFinderFrameFindRaidButton:SetText(LEAVE_QUEUE);
 	else

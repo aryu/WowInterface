@@ -1466,7 +1466,7 @@ function UnitPopup_OnClick (self)
 	local name = dropdownFrame.name;
 	local server = dropdownFrame.server;
 	local fullname = name;
-
+	
 	if ( server and (not unit or not UnitIsSameServer("player", unit)) ) then
 		fullname = name.."-"..server;
 	end
@@ -1504,12 +1504,12 @@ function UnitPopup_OnClick (self)
 	elseif ( button == "IGNORE" ) then
 		AddOrDelIgnore(fullname);
 	elseif ( button == "REPORT_SPAM" ) then
-		local dialog = StaticPopup_Show("CONFIRM_REPORT_SPAM_CHAT", name);
+		local dialog = StaticPopup_Show("CONFIRM_REPORT_SPAM_CHAT", fullname);
 		if ( dialog ) then
 			dialog.data = dropdownFrame.unit or tonumber(dropdownFrame.lineID);
 		end
 	elseif ( button == "REPORT_BAD_LANGUAGE" ) then
-		local dialog = StaticPopup_Show("CONFIRM_REPORT_BAD_LANGUAGE_CHAT", name);
+		local dialog = StaticPopup_Show("CONFIRM_REPORT_BAD_LANGUAGE_CHAT", fullname);
 		if ( dialog ) then
 			dialog.data = dropdownFrame.unit or tonumber(dropdownFrame.lineID);
 		end
@@ -1527,10 +1527,10 @@ function UnitPopup_OnClick (self)
 		end
 	elseif ( button == "REPORT_PET" ) then
 		SetPendingReportPetTarget(unit);
-		StaticPopup_Show("CONFIRM_REPORT_PET_NAME", name);
+		StaticPopup_Show("CONFIRM_REPORT_PET_NAME", fullname);
 	elseif ( button == "REPORT_BATTLE_PET" ) then
 		C_PetBattles.SetPendingReportTargetFromUnit(unit);
-		StaticPopup_Show("CONFIRM_REPORT_BATTLEPET_NAME", name);
+		StaticPopup_Show("CONFIRM_REPORT_BATTLEPET_NAME", fullname);
 	elseif ( button == "REPORT_CHEATING" ) then
 		if ( GMQuickTicketSystemEnabled() and not GMQuickTicketSystemThrottled() ) then
 			HelpFrame_ShowReportCheatingDialog(dropdownFrame.unit or tonumber(dropdownFrame.lineID));
@@ -1554,10 +1554,10 @@ function UnitPopup_OnClick (self)
 	elseif ( button == "UNINVITE" or button == "VOTE_TO_KICK" ) then
 		UninviteUnit(fullname, nil, 1);
 	elseif ( button == "REMOVE_FRIEND" ) then
-		RemoveFriend(name);
+		RemoveFriend(fullname);
 	elseif ( button == "SET_NOTE" ) then
-		FriendsFrame.NotesID = name;
-		StaticPopup_Show("SET_FRIENDNOTE", name);
+		FriendsFrame.NotesID = fullname;
+		StaticPopup_Show("SET_FRIENDNOTE", fullname);
 		PlaySound("igCharacterInfoClose");
 	elseif ( button == "BN_REMOVE_FRIEND" ) then
 		local presenceID, presenceName, _, isBattleTagPresence = BNGetFriendInfoByID(dropdownFrame.presenceID);
@@ -1572,7 +1572,7 @@ function UnitPopup_OnClick (self)
 		end
 	elseif ( button == "BN_SET_NOTE" ) then
 		FriendsFrame.NotesID = dropdownFrame.presenceID;
-		StaticPopup_Show("SET_BNFRIENDNOTE", name);
+		StaticPopup_Show("SET_BNFRIENDNOTE", fullname);
 		PlaySound("igCharacterInfoClose");
 	elseif ( button == "BN_VIEW_FRIENDS" ) then
 		FriendsFriendsFrame_Show(dropdownFrame.presenceID);
@@ -1588,21 +1588,21 @@ function UnitPopup_OnClick (self)
 	elseif ( button == "PROMOTE" or button == "PROMOTE_GUIDE" ) then
 		PromoteToLeader(unit, 1);
 	elseif ( button == "GUILD_PROMOTE" ) then
-		local dialog = StaticPopup_Show("CONFIRM_GUILD_PROMOTE", name);
-		dialog.data = name;
+		local dialog = StaticPopup_Show("CONFIRM_GUILD_PROMOTE", fullname);
+		dialog.data = fullname;
 	elseif ( button == "GUILD_LEAVE" ) then
 		StaticPopup_Show("CONFIRM_GUILD_LEAVE", GetGuildInfo("player"));
 	elseif ( button == "TEAM_PROMOTE" ) then
-		local dialog = StaticPopup_Show("CONFIRM_TEAM_PROMOTE", name, GetArenaTeam(PVPUI_GetSelectedArenaTeam()));
+		local dialog = StaticPopup_Show("CONFIRM_TEAM_PROMOTE", fullname, GetArenaTeam(PVPUI_GetSelectedArenaTeam()));
 		if ( dialog ) then
 			dialog.data = PVPUI_GetSelectedArenaTeam();
-			dialog.data2 = name;
+			dialog.data2 = fullname;
 		end
 	elseif ( button == "TEAM_KICK" ) then
-		local dialog = StaticPopup_Show("CONFIRM_TEAM_KICK", name, GetArenaTeam(PVPUI_GetSelectedArenaTeam()) );
+		local dialog = StaticPopup_Show("CONFIRM_TEAM_KICK", fullname, GetArenaTeam(PVPUI_GetSelectedArenaTeam()) );
 		if ( dialog ) then
 			dialog.data = PVPUI_GetSelectedArenaTeam();
-			dialog.data2 = name;
+			dialog.data2 = fullname;
 		end
 	elseif ( button == "TEAM_LEAVE" ) then
 		local dialog = StaticPopup_Show("CONFIRM_TEAM_LEAVE", GetArenaTeam(PVPUI_GetSelectedArenaTeam()) );
@@ -1789,7 +1789,7 @@ function UnitPopup_OnClick (self)
 	elseif ( strsub(button, 1, 9) == "SET_ROLE_" ) then
 		UnitSetRole(dropdownFrame.unit, strsub(button, 10));
 	elseif ( button == "ADD_FRIEND" or button == "CHARACTER_FRIEND" ) then
-		AddFriend(name);
+		AddFriend(fullname);
 	elseif ( button == "BATTLETAG_FRIEND" ) then
 		local _, battleTag = BNGetInfo();
 		if ( not battleTag ) then
@@ -1803,7 +1803,7 @@ function UnitPopup_OnClick (self)
 		if ( not battleTag ) then
 			StaticPopupSpecial_Show(CreateBattleTagFrame);
 		else
-			BNCheckBattleTagInviteToGuildMember(name);
+			BNCheckBattleTagInviteToGuildMember(fullname);
 		end
 		CloseDropDownMenus();
 	end

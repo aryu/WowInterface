@@ -10,7 +10,7 @@ MAX_WOW_CHAT_CHANNELS = 10;
 CHAT_TIMESTAMP_FORMAT = nil;		-- gets set from Interface Options
 CHAT_SHOW_IME = false;
 
-MAX_CHARACTER_NAME_BYTES = 48;
+MAX_CHARACTER_NAME_BYTES = 305;
 
 --DEBUG FIXME FOR TESTING
 CHAT_OPTIONS = {
@@ -1010,7 +1010,7 @@ local function ExecuteCastRandom(actions)
 		CastRandomTable[actions] = entry;
 	end
 	if ( not entry.value ) then
-		entry.value = entry.spellNames[random(#entry.spellNames)];
+		entry.value = entry.spellNames[securerandom(#entry.spellNames)];
 	end
 	entry.pending = true;
 	return entry.value;
@@ -1616,7 +1616,7 @@ end
 
 SlashCmdList["INVITE"] = function(msg)
 	if(msg == "") then
-		msg = UnitName("target");
+		msg = GetUnitName("target", true)
 	end
 	if( msg and (strlen(msg) > MAX_CHARACTER_NAME_BYTES) ) then
 		ChatFrame_DisplayUsageError(ERR_NAME_TOO_LONG2);
@@ -2018,7 +2018,7 @@ end
 
 SlashCmdList["GUILD_INVITE"] = function(msg)
 	if(msg == "") then
-		msg = UnitName("target");
+		msg = GetUnitName("target", true);
 	end
 	if( msg and (strlen(msg) > MAX_CHARACTER_NAME_BYTES) ) then
 		ChatFrame_DisplayUsageError(ERR_NAME_TOO_LONG2);
@@ -2243,7 +2243,7 @@ end
 
 SlashCmdList["RAID_INFO"] = function(msg)
 	RaidFrame.slashCommand = 1;
-	if ( ( GetNumSavedInstances() > 0 ) and not RaidInfoFrame:IsVisible() ) then
+	if ( ( GetNumSavedInstances() + GetNumSavedWorldBosses() > 0 ) and not RaidInfoFrame:IsVisible() ) then
 		ToggleRaidFrame();
 		RaidInfoFrame:Show();
 	elseif ( not RaidFrame:IsVisible() ) then
@@ -2861,7 +2861,7 @@ function ChatFrame_SystemEventHandler(self, event, ...)
 	elseif ( event == "UPDATE_INSTANCE_INFO" ) then
 		if ( RaidFrame.hasRaidInfo ) then
 			local info = ChatTypeInfo["SYSTEM"];
-			if ( RaidFrame.slashCommand and GetNumSavedInstances() == 0 and self == DEFAULT_CHAT_FRAME) then
+			if ( RaidFrame.slashCommand and GetNumSavedInstances() + GetNumSavedWorldBosses() == 0 and self == DEFAULT_CHAT_FRAME) then
 				self:AddMessage(NO_RAID_INSTANCES_SAVED, info.r, info.g, info.b, info.id);
 				RaidFrame.slashCommand = nil;
 			end
