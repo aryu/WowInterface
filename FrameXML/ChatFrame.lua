@@ -1498,7 +1498,7 @@ SecureCmdList["CLICK"] = function(msg)
 			name = action;
 		end
 		local button = GetClickFrame(name);
-		if ( button and button:IsObjectType("Button") ) then
+		if ( button and button:IsObjectType("Button") and not button:IsForbidden() ) then
 			button:Click(mouseButton, down);
 		end
 	end
@@ -1614,7 +1614,7 @@ end
 
 SlashCmdList["UNINVITE"] = function(msg)
 	if(msg == "") then
-		msg = UnitName("target");
+		msg = GetUnitName("target", true);
 	end
 	UninviteUnit(msg);
 end
@@ -2302,11 +2302,9 @@ end
 
 
 SlashCmdList["WARGAME"] = function(msg)
-	local target, area = strmatch(msg, "%s*([^%s]+)%s*(.*)");
-	if ( target and target ~= "" ) then
-		if area and area == "" then area = nil end 
-		StartWarGame(target, area );
-	end
+	local area = msg;
+	if area and area == "" then area = nil end 
+	StartWarGame("target", area );
 end
 
 SlashCmdList["GUILDFINDER"] = function(msg)

@@ -4,9 +4,6 @@
 local _, tbl = ...;
 
 tbl.SecureCapsuleGet = SecureCapsuleGet;
---Debug
-tbl.CreateForbiddenFrame = CreateFrame;
---End debug
 setfenv(1, tbl);
 ----------------
 
@@ -26,11 +23,13 @@ end
 
 --Imports
 Import("C_PurchaseAPI");
+Import("CreateForbiddenFrame");
 Import("math");
 Import("pairs");
 Import("tostring");
 Import("LoadURLIndex");
 Import("GetContainerNumFreeSlots");
+Import("PlaySound");
 Import("BACKPACK_CONTAINER");
 Import("NUM_BAG_SLOTS");
 
@@ -71,10 +70,25 @@ Import("BLIZZARD_STORE_BROWSE_BATTLE_COINS_CN");
 Import("BLIZZARD_STORE_ASTERISK");
 Import("BLIZZARD_STORE_INTERNAL_ERROR");
 Import("BLIZZARD_STORE_INTERNAL_ERROR_SUBTEXT");
+Import("BLIZZARD_STORE_ERROR_TITLE_OTHER");
+Import("BLIZZARD_STORE_ERROR_MESSAGE_OTHER");
+Import("BLIZZARD_STORE_NOT_AVAILABLE");
+Import("BLIZZARD_STORE_NOT_AVAILABLE_SUBTEXT");
+Import("BLIZZARD_STORE_ERROR_TITLE_PAYMENT");
+Import("BLIZZARD_STORE_ERROR_MESSAGE_PAYMENT");
+Import("BLIZZARD_STORE_ERROR_TITLE_BATTLEPAY_DISABLED");
+Import("BLIZZARD_STORE_ERROR_MESSAGE_BATTLEPAY_DISABLED");
 
 Import("OKAY");
 Import("LARGE_NUMBER_SEPERATOR");
 Import("DECIMAL_SEPERATOR");
+
+--Lua enums
+Import("LE_STORE_ERROR_INVALID_PAYMENT_METHOD");
+Import("LE_STORE_ERROR_PAYMENT_FAILED");
+Import("LE_STORE_ERROR_WRONG_CURRENCY");
+Import("LE_STORE_ERROR_BATTLEPAY_DISABLED");
+Import("LE_STORE_ERROR_OTHER");
 
 --Data
 CURRENCY_UNKNOWN = 0;
@@ -186,6 +200,36 @@ local function currencyInfo()
 	return info;
 end
 
+--Error message data
+local errorData = {
+	[LE_STORE_ERROR_INVALID_PAYMENT_METHOD] = {
+		title = BLIZZARD_STORE_ERROR_TITLE_PAYMENT,
+		msg = BLIZZARD_STORE_ERROR_MESSAGE_PAYMENT,
+		--link = 1,
+	},
+	[LE_STORE_ERROR_PAYMENT_FAILED] = {
+		title = BLIZZARD_STORE_ERROR_TITLE_PAYMENT,
+		msg = BLIZZARD_STORE_ERROR_MESSAGE_PAYMENT,
+		--link = 1,
+	},
+	[LE_STORE_ERROR_WRONG_CURRENCY] = {
+		title = BLIZZARD_STORE_ERROR_TITLE_PAYMENT,
+		msg = BLIZZARD_STORE_ERROR_MESSAGE_PAYMENT,
+		--link = 1,
+	},
+	[LE_STORE_ERROR_BATTLEPAY_DISABLED] = {
+		title = BLIZZARD_STORE_ERROR_TITLE_BATTLEPAY_DISABLED,
+		msg = BLIZZARD_STORE_ERROR_MESSAGE_BATTLEPAY_DISABLED,
+		--link = 1,
+	},
+
+	[LE_STORE_ERROR_OTHER] = {
+		title = BLIZZARD_STORE_ERROR_TITLE_OTHER,	--Probably want to format in the error code
+		msg = BLIZZARD_STORE_ERROR_MESSAGE_OTHER,
+		--link = 1,
+	}
+};
+
 --Code
 local function getIndex(tbl, value)
 	for k, v in pairs(tbl) do
@@ -200,6 +244,7 @@ function StoreFrame_OnLoad(self)
 	self:RegisterEvent("STORE_PRODUCTS_UPDATED");
 	self:RegisterEvent("STORE_PURCHASE_LIST_UPDATED");
 	self:RegisterEvent("BAG_UPDATE_DELAYED"); --Used for showing the panel when all bags are full
+	self:RegisterEvent("STORE_PURCHASE_ERROR");
 	C_PurchaseAPI.GetProductList();
 	C_PurchaseAPI.GetPurchaseList();
 	C_PurchaseAPI.GetDistributionList();
@@ -213,6 +258,12 @@ function StoreFrame_OnLoad(self)
 	self:SetPoint("CENTER", nil, "CENTER", 0, 77); --Intentionally not anchored to UIParent.
 
 	StoreFrame_UpdateActivePanel(self);
+
+	--Check whether we already have an error waiting for us.
+	local errorID = C_PurchaseAPI.GetFailureInfo();
+	if ( errorID ) then
+		StoreFrame_OnError(self, errorID, true);
+	end
 end
 
 function StoreFrame_OnEvent(self, event, ...)
@@ -223,6 +274,8 @@ function StoreFrame_OnEvent(self, event, ...)
 		StoreFrame_UpdateActivePanel(self);
 	elseif ( self:IsShown() and event == "BAG_UPDATE_DELAYED" ) then
 		StoreFrame_UpdateActivePanel(self);
+	elseif ( event == "STORE_PURCHASE_ERROR" ) then
+		StoreFrame_OnError(self, C_PurchaseAPI.GetFailureInfo(), true);
 	end
 end
 
@@ -231,6 +284,8 @@ function StoreFrame_OnShow(self)
 	WaitingOnConfirmation = false;
 	StoreFrame_UpdateActivePanel(self);
 	Outbound.UpdateMicroButtons();
+
+	PlaySound("UI_igStore_WindowOpen_Button");
 end
 
 function StoreFrame_OnAttributeChanged(self, name, value)
@@ -243,7 +298,7 @@ function StoreFrame_OnAttributeChanged(self, name, value)
 		elseif ( value == "EscapePressed" ) then
 			local handled = false;
 			if ( self:IsShown() ) then
-				if ( StoreConfirmationFrame:IsShown() ) then
+				if ( self.ErrorFrame:IsShown() or StoreConfirmationFrame:IsShown() ) then
 					--We eat the click, but don't close anything. Make them explicitly press "Cancel".
 					handled = true;
 				else
@@ -256,6 +311,14 @@ function StoreFrame_OnAttributeChanged(self, name, value)
 	end
 end
 
+function StoreFrame_OnError(self, errorID, needsAck)
+	local info = errorData[errorID];
+	if ( not info ) then
+		info = errorData[LE_STORE_ERROR_OTHER];
+	end
+	StoreFrame_ShowError(self, info.title, info.msg, info.link, needsAck);
+end
+
 function StoreFrame_UpdateActivePanel(self)
 	if ( WaitingOnConfirmation ) then
 		StoreFrame_SetAlert(self, BLIZZARD_STORE_CONNECTING, BLIZZARD_STORE_PLEASE_WAIT);
@@ -263,6 +326,8 @@ function StoreFrame_UpdateActivePanel(self)
 		StoreFrame_SetAlert(self, BLIZZARD_STORE_TRANSACTION_IN_PROGRESS, BLIZZARD_STORE_CHECK_BACK_LATER);
 	elseif ( C_PurchaseAPI.HasPurchaseInProgress() ) then --Even if we don't have every list, if we know we have something in progress, we can display that.
 		StoreFrame_SetAlert(self, BLIZZARD_STORE_TRANSACTION_IN_PROGRESS, BLIZZARD_STORE_CHECK_BACK_LATER);
+	elseif ( not C_PurchaseAPI.IsAvailable() ) then
+		StoreFrame_SetAlert(self, BLIZZARD_STORE_NOT_AVAILABLE, BLIZZARD_STORE_NOT_AVAILABLE_SUBTEXT);
 	elseif ( not C_PurchaseAPI.HasPurchaseList() or not C_PurchaseAPI.HasProductList() or not C_PurchaseAPI.HasDistributionList() ) then
 		StoreFrame_SetAlert(self, BLIZZARD_STORE_LOADING, BLIZZARD_STORE_PLEASE_WAIT);
 	elseif ( #C_PurchaseAPI.GetProductGroups() == 0 ) then
@@ -288,10 +353,15 @@ function StoreFrame_SetAlert(self, title, desc)
 	self.Notice.Title:SetText(title);
 	self.Notice.Description:SetText(desc);
 	self.Notice:Show();
+
+	if ( StoreConfirmationFrame ) then
+		StoreConfirmationFrame:Raise(); --Make sure the confirmation is above this alert frame.
+	end
 end
 
 local ActiveURLIndex = nil;
-function StoreFrame_ShowError(self, title, desc, urlIndex)
+local ErrorNeedsAck = nil;
+function StoreFrame_ShowError(self, title, desc, urlIndex, needsAck)
 	local height = 110;
 	self.ErrorFrame.Error.Title:SetText(title);
 	self.ErrorFrame.Error.Description:SetText(desc);
@@ -316,11 +386,20 @@ function StoreFrame_ShowError(self, title, desc, urlIndex)
 		self.ErrorFrame.Error.WebsiteWarning:Hide();
 		ActiveURLIndex = nil;
 	end
+	ErrorNeedsAck = needsAck;
+
 	self.ErrorFrame:Show();
 	self.ErrorFrame.Error:SetHeight(height);
+
+	if ( StoreConfirmationFrame ) then
+		StoreConfirmationFrame:Raise(); --Make sure the confirmation is above this error frame.
+	end
 end
 
 function StoreFrameErrorAcceptButton_OnClick(self)
+	if ( ErrorNeedsAck ) then
+		C_PurchaseAPI.AckFailure();
+	end
 	StoreFrame.ErrorFrame:Hide();
 end
 
@@ -330,10 +409,14 @@ end
 
 function StoreFrameBrowseNextItem_OnClick(self)
 	StoreFrameBrowse_Advance(self:GetParent(), 1);
+
+	PlaySound("UI_igStore_PageNav_Button");
 end
 
 function StoreFrameBrowsePrevItem_OnClick(self)
 	StoreFrameBrowse_Advance(self:GetParent(), -1);
+
+	PlaySound("UI_igStore_PageNav_Button");
 end
 
 function StoreFrameBrowse_Advance(self, amount)
@@ -447,6 +530,7 @@ end
 function StoreFrameBrowseQuantitySelectButton_OnClick(self)
 	CurrentProductID = self:GetID();
 	StoreFrameBrowse_UpdateQuantitySelection(StoreFrame.Browse);
+	PlaySound("igMainMenuOptionCheckBoxOn");
 end
 
 function StoreFrameCloseButton_OnClick(self)
@@ -455,6 +539,8 @@ end
 
 function StoreFrameBuyButton_OnClick(self)
 	StoreFrame_BeginPurchase(CurrentProductID);
+
+	PlaySound("UI_igStore_Buy_Button");
 end
 
 function StoreFrame_BeginPurchase(productID)
@@ -518,7 +604,7 @@ function StoreConfirmationFrame_Update(self)
 		return;
 	end
 
-	local id, title, normalPrice, currentPrice, groupID = C_PurchaseAPI.GetProductInfo(productID);
+	local id, title, normalPrice, currentPrice, groupID, fullName = C_PurchaseAPI.GetProductInfo(productID);
 	if ( not groupID ) then
 		self:Hide(); --Should never happen, but may want to handle and throw an error message.
 		return;
@@ -526,7 +612,7 @@ function StoreConfirmationFrame_Update(self)
 
 	local id, name, description, icon = C_PurchaseAPI.GetProductGroupInfo(groupID);
 	self.Icon:SetTexture(icon);
-	self.GroupName:SetText(name);
+	self.FullName:SetText(fullName);
 	self.Notice:SetText(currencyInfo().confirmationNotice);
 	self.FinalPrice:SetText(currencyInfo().formatLong(currentPrice));
 	self.PaymentMethod:SetText(currencyInfo().paymentMethodText);
@@ -537,11 +623,18 @@ end
 function StoreConfirmationCancel_OnClick(self)
 	C_PurchaseAPI.PurchaseProductConfirm(false);
 	StoreConfirmationFrame:Hide();
+
+	PlaySound("UI_igStore_Cancel_Button");
 end
 
 function StoreConfirmationFinalBuy_OnClick(self)
-	JustOrderedProduct = true;
-	C_PurchaseAPI.PurchaseProductConfirm(true, FinalPrice);
+	if ( C_PurchaseAPI.PurchaseProductConfirm(true, FinalPrice) ) then
+		JustOrderedProduct = true;
+		PlaySound("UI_igStore_ConfirmPurchase_Button");
+	else
+		StoreFrame_OnError(StoreFrame, LE_STORE_ERROR_OTHER, false);
+		PlaySound("UI_igStore_Cancel_Button");
+	end
 	StoreFrame_UpdateActivePanel(StoreFrame);
 	StoreConfirmationFrame:Hide();
 end
