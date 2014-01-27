@@ -95,8 +95,4 @@ end
 
 function LocalizeFrames()
 	-- Put all locale specific UI adjustments here
-	WorldOfWarcraftRating:SetTexture("Interface\\Glues\\Login\\Glues-FrenchRating");
-	WorldOfWarcraftRating:ClearAllPoints();
-	WorldOfWarcraftRating:SetPoint("BOTTOMLEFT", "AccountLoginUI", "BOTTOMLEFT", 20, 45);
-	WorldOfWarcraftRating:Show();
 end
