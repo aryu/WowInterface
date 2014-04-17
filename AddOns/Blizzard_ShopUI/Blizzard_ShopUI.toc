@@ -1,6 +1,0 @@
-## Interface: 50400
-## Title: Blizzard Store UI
-## Secure: 1
-## LoadOnDemand: 1
-Blizzard_ShopUI.xml
-Localization.lua
