@@ -250,12 +250,6 @@ size=512,512
 						<Anchor point="TOP" y="14"/>
 					</Anchors>
 				</Texture>
-				<FontString parentKey="OptionText" inherits="GameFontBlack" justifyH="LEFT" justifyV="TOP">
-					<Size x="200" y="0"/>
-					<Anchors>
-						<Anchor point="TOP" y="-103"/>
-					</Anchors>
-				</FontString>
 			</Layer>
 		</Layers>
 		<Frames>
@@ -280,6 +274,20 @@ size=512,512
 					<Anchor point="BOTTOM" relativeKey="$parent.OptionButton" relativePoint="TOP" y="5"/>
 				</Anchors>
 			</Frame>
+			<SimpleHTML parentKey="OptionText">
+				<Size x="200" y="140"/>
+				<Anchors>
+					<Anchor point="TOP" y="-103"/>
+				</Anchors>
+				<Scripts>
+					<OnHyperlinkClick>
+						SetItemRef(link, text, button, self);
+					</OnHyperlinkClick>
+					<OnHyperlinkEnter function="QuestChoiceFrame_OnHyperlinkEnter"/>
+					<OnHyperlinkLeave function="GameTooltip_Hide"/>
+				</Scripts>
+				<FontString inherits="GameFontBlack" justifyH="LEFT" justifyV="TOP"/>
+			</SimpleHTML>
 		</Frames>
 	</Button>
 	
@@ -454,6 +462,7 @@ size=512,512
 				self:RegisterEvent("QUEST_CHOICE_UPDATE");
 				self:RegisterEvent("PLAYER_ENTERING_WORLD");
 				self:RegisterEvent("PLAYER_DEAD");
+				self:RegisterEvent("QUEST_CHOICE_CLOSE");
 				QuestChoiceFrame_Update(self);
 			</OnLoad>
 			<OnEvent function="QuestChoiceFrame_OnEvent"/>

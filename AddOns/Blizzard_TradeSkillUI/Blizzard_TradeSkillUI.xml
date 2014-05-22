@@ -998,6 +998,7 @@
 			</OnShow>
 			<OnHide>
 				CloseTradeSkill();
+				C_Garrison.CloseGarrisonTradeskillNPC();
 				PlaySound("igCharacterInfoClose");
 			</OnHide>
 			<OnUpdate function="TradeSkillFrame_OnUpdate"/>

@@ -65,7 +65,7 @@ function SetItemButtonDesaturated(button, desaturated)
 	if ( not button ) then
 		return;
 	end
-	local icon = _G[button:GetName().."IconTexture"];
+	local icon = button.Icon or _G[button:GetName().."IconTexture"];
 	if ( not icon ) then
 		return;
 	end

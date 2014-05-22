@@ -9,7 +9,7 @@
 				<Texture parentKey="Check" atlas="Tracker-Check" useAtlasSize="true" hidden="true">
 					<Size x="16" y="16"/>
 					<Anchors>
-						<Anchor point="CENTER" relativeKey="$parent.Text" relativePoint="LEFT" x="-11" y="0"/>
+						<Anchor point="TOPLEFT" x="-10" y="2"/>
 					</Anchors>
 				</Texture>			
 			</Layer>

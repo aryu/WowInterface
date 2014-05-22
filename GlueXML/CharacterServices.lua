@@ -586,7 +586,12 @@ function CharacterUpgradeFlow:Advance(controller)
 end
 
 function CharacterUpgradeFlow:Finish(controller)
-	if (not warningAccepted and C_PurchaseAPI.GetCurrencyID() == CURRENCY_KRW) then
+	if (not warningAccepted) then
+		if ( C_PurchaseAPI.GetCurrencyID() == CURRENCY_KRW ) then
+			CharacterUpgradeSecondChanceWarningBackground.Text:SetText(CHARACTER_UPGRADE_KRW_FINISH_BUTTON_POPUP_TEXT);
+		else
+			CharacterUpgradeSecondChanceWarningBackground.Text:SetText(CHARACTER_UPGRADE_FINISH_BUTTON_POPUP_TEXT);
+		end
 		CharacterUpgradeSecondChanceWarningFrame:Show();
 		return false;
 	end

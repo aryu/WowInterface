@@ -14,7 +14,13 @@ function LFGListFrame_OnLoad(self)
 	self:RegisterEvent("LFG_LIST_AVAILABILITY_UPDATE");
 	self:RegisterEvent("LFG_LIST_ACTIVE_ENTRY_UPDATE");
 	self:RegisterEvent("LFG_LIST_ENTRY_CREATION_FAILED");
+	self:RegisterEvent("LFG_LIST_SEARCH_RESULTS_RECEIVED");
+	self:RegisterEvent("LFG_LIST_SEARCH_FAILED");
 	LFGListFrame_SetActivePanel(self, self.NothingAvailable);
+
+	self.EventsInBackground = {
+		LFG_LIST_SEARCH_FAILED = { self.SearchPanel };
+	}
 end
 
 function LFGListFrame_OnEvent(self, event, ...)
@@ -34,6 +40,16 @@ function LFGListFrame_OnEvent(self, event, ...)
 	if ( onEvent ) then
 		onEvent(self.activePanel, event, ...);
 	end
+
+	--Dispatch the event to any panels that want the event in the background
+	local bg = self.EventsInBackground[event];
+	if ( bg ) then
+		for i=1, #bg do
+			if ( bg[i] ~= self.activePanel ) then
+				bg[i]:GetScript("OnEvent")(bg[i], event, ...);
+			end
+		end
+	end
 end
 
 function LFGListFrame_OnShow(self)
@@ -51,6 +67,12 @@ end
 
 function LFGListFrame_IsPanelValid(self, panel)
 	local listed = C_LFGList.GetActiveEntryInfo();
+
+	--DEBUG - Always let us open the search panel and category selection panel
+	if ( panel == self.SearchPanel or panel == self.CategorySelection ) then
+		return true;
+	end
+	--END DEBUG
 
 	if ( listed and panel ~= self.ApplicationViewer and not (panel == self.EntryCreation and LFGListEntryCreation_IsEditMode(self.EntryCreation)) ) then
 		return false;
@@ -201,6 +223,19 @@ function LFGListCategorySelectionStartGroupButton_OnClick(self)
 	LFGListEntryCreation_SetEditMode(entryCreation, false);
 	LFGListEntryCreation_Select(entryCreation, panel.selectedFilters, panel.selectedCategory);
 	LFGListFrame_SetActivePanel(panel:GetParent(), entryCreation);
+end
+
+function LFGListCategorySelectionFindGroupButton_OnClick(self)
+	local panel = self:GetParent();
+	if ( not panel.selectedCategory ) then
+		return;
+	end
+
+	local searchPanel = panel:GetParent().SearchPanel;
+	LFGListSearchPanel_Clear(searchPanel);
+	LFGListSearchPanel_SetCategory(searchPanel, panel.selectedCategory, panel.selectedFilters);
+	LFGListSearchPanel_DoSearch(searchPanel);
+	LFGListFrame_SetActivePanel(panel:GetParent(), searchPanel);
 end
 
 --The individual category buttons
@@ -469,6 +504,248 @@ function LFGListApplicationViewerEditButton_OnClick(self)
 end
 
 -------------------------------------------------------
+----------Searching
+-------------------------------------------------------
+function LFGListSearchPanel_OnLoad(self)
+	self.ScrollFrame.update = function() LFGListSearchPanel_UpdateResults(self); end;
+	self.ScrollFrame.scrollBar.doNotHide = true;
+	HybridScrollFrame_CreateButtons(self.ScrollFrame, "LFGListSearchResultTemplate");
+end
+
+function LFGListSearchPanel_OnEvent(self, event, ...)
+	--Note: events are dispatched from the base frame. Add RegisterEvent there.
+	if ( event == "LFG_LIST_SEARCH_RESULTS_RECEIVED" ) then
+		self.searching = false;
+		self.searchFailed = false;
+		LFGListSearchPanel_UpdateResultList(self);
+		LFGListSearchPanel_UpdateResults(self);
+	elseif ( event == "LFG_LIST_SEARCH_FAILED" ) then
+		self.searching = false;
+		self.searchFailed = true;
+		LFGListSearchPanel_UpdateResultList(self);
+		LFGListSearchPanel_UpdateResults(self);
+	end
+end
+
+function LFGListSearchPanel_OnShow(self)
+	LFGListSearchPanel_UpdateResultList(self);
+	LFGListSearchPanel_UpdateResults(self);
+end
+
+function LFGListSearchPanel_Clear(self)
+	C_LFGList.ClearSearchResults();
+	self.SearchBox:SetText("");
+	self.selectedResult = nil;
+	LFGListSearchPanel_UpdateResultList(self);
+	LFGListSearchPanel_UpdateResults(self);
+end
+
+function LFGListSearchPanel_SetCategory(self, categoryID, filters)
+	self.categoryID = categoryID;
+	self.filters = filters;
+
+	local name = LFGListUtil_GetDecoratedCategoryName(C_LFGList.GetCategoryInfo(categoryID), filters, false);
+	self.CategoryName:SetText(name);
+end
+
+function LFGListSearchPanel_DoSearch(self)
+	C_LFGList.Search(self.categoryID, self.SearchBox:GetText(), self.filters);
+	self.searching = true;
+	self.searchFailed = false;
+	self.selectedResult = nil;
+	LFGListSearchPanel_UpdateResultList(self);
+	LFGListSearchPanel_UpdateResults(self);
+end
+
+function LFGListSearchPanel_UpdateResultList(self)
+	self.totalResults, self.results = C_LFGList.GetSearchResults();
+	LFGListUtil_SortSearchResults(self.results);
+end
+
+function LFGListSearchPanel_UpdateResults(self)
+	local offset = HybridScrollFrame_GetOffset(self.ScrollFrame);
+	local buttons = self.ScrollFrame.buttons;
+
+	if ( self.searching ) then
+		self.SearchingSpinner:Show();
+		self.ScrollFrame.NoResultsFound:Hide();
+		for i=1, #buttons do
+			buttons[i]:Hide();
+		end
+	else
+		self.SearchingSpinner:Hide();
+		local results = self.results;
+
+		for i=1, #buttons do
+			local button = buttons[i];
+			local result = results[i + offset];
+			if ( result ) then
+				LFGListSearchResult_Update(button.Search, result);
+				button.Search:Show();
+				button:Show();
+			else
+				LFGListSearchResult_Clear(button.Search);
+				button:Hide();
+			end
+		end
+
+		self.ScrollFrame.NoResultsFound:SetShown(#results == 0);
+		self.ScrollFrame.NoResultsFound:SetText(self.searchFailed and LFG_LIST_SEARCH_FAILED or LFG_LIST_NO_RESULTS_FOUND);
+
+		local totalHeight = buttons[1]:GetHeight() * #results;
+		HybridScrollFrame_Update(self.ScrollFrame, totalHeight, self.ScrollFrame:GetHeight());
+	end
+	LFGListSearchPanel_UpdateButtonStatus(self);
+end
+
+function LFGListSearchPanel_SelectResult(self, resultID)
+	self.selectedResult = resultID;
+	LFGListSearchPanel_UpdateResults(self);
+end
+
+function LFGListSearchPanel_UpdateButtonStatus(self)
+	local resultID = self.selectedResult;
+	if ( resultID ) then
+		self.SignUpButton:Enable();
+	else
+		self.SignUpButton:Disable();
+	end
+end
+
+function LFGListSearchResult_OnLoad(self)
+	self:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED");
+end
+
+function LFGListSearchResult_OnEvent(self, event, ...)
+	if ( event == "LFG_LIST_SEARCH_RESULT_UPDATED" ) then
+		local id = ...;
+		if ( id == self.resultID ) then
+			LFGListSearchResult_Update(self, id);
+		end
+	end
+end
+
+function LFGListSearchResult_Clear(self)
+	self.resultID = nil;
+	self:Hide();
+end
+
+function LFGListSearchResult_Update(self, resultID)
+	local panel = self:GetParent():GetParent():GetParent():GetParent();
+
+	local id, activityID, name, comment, voiceChat, iLvl, age, numBNetFriends, numCharFriends, numGuildMates, numTanks, numHealers, numDPS = C_LFGList.GetSearchResultInfo(resultID);
+	local activityName = C_LFGList.GetActivityInfo(activityID);
+
+	self.resultID = resultID;
+	self.Selected:SetShown(panel.selectedResult == resultID);
+	self.Highlight:SetShown(panel.selectedResult ~= resultID);
+	self.Name:SetText(name);
+	self.ActivityName:SetText(activityName);
+	self.TankCount:SetText(numTanks);
+	self.HealerCount:SetText(numHealers);
+	self.DamageCount:SetText(numDPS);
+	self.VoiceChat:SetShown(voiceChat ~= "");
+	self.VoiceChat.tooltip = string.format(LFG_LIST_TOOLTIP_VOICE_CHAT, voiceChat);
+	self.Friends:SetShown(numBNetFriends + numCharFriends + numGuildMates > 0);
+
+	local nameWidth = 185;
+	if ( numBNetFriends + numCharFriends + numGuildMates > 0 ) then
+		nameWidth = 145;
+	elseif ( voiceChat ~= "" ) then
+		nameWidth = 165;
+	end
+	self.Name:SetWidth(nameWidth);
+	self.ActivityName:SetWidth(nameWidth);
+
+	local mouseFocus = GetMouseFocus();
+	if ( mouseFocus == self ) then
+		LFGListSearchResult_OnEnter(self);
+	end
+	if ( mouseFocus == self.VoiceChat ) then
+		mouseFocus:GetScript("OnEnter")(mouseFocus);
+	end
+	if ( mouseFocus == self.Friends ) then
+		mouseFocus:GetScript("OnEnter")(mouseFocus);
+	end
+end
+
+function LFGListSearchResult_OnClick(self)
+	local scrollFrame = self:GetParent():GetParent():GetParent();
+	LFGListSearchPanel_SelectResult(scrollFrame:GetParent(), self.resultID);
+end
+
+function LFGListSearchResult_OnEnter(self)
+	local resultID = self.resultID;
+	local id, activityID, name, comment, voiceChat, iLvl, age, numBNetFriends, numCharFriends, numGuildMates, numTanks, numHealers, numDPS = C_LFGList.GetSearchResultInfo(resultID);
+	local activityName = C_LFGList.GetActivityInfo(activityID);
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+	GameTooltip:SetText(name, 1, 1, 1, true);
+	GameTooltip:AddLine(activityName);
+	if ( comment ~= "" ) then
+		GameTooltip:AddLine(string.format(LFG_LIST_COMMENT_FORMAT, comment), GRAY_FONT_COLOR.r, GRAY_FONT_COLOR.g, GRAY_FONT_COLOR.b, true);
+	end
+	GameTooltip:AddLine(" ");
+	if ( iLvl > 0 ) then
+		GameTooltip:AddLine(string.format(LFG_LIST_TOOLTIP_ILVL, iLvl));
+	end
+	if ( voiceChat ~= "" ) then
+		GameTooltip:AddLine(string.format(LFG_LIST_TOOLTIP_VOICE_CHAT, voiceChat), nil, nil, nil, true);
+	end
+	if ( iLvl > 0 or voiceChat ~= "" ) then
+		GameTooltip:AddLine(" ");
+	end
+
+	if ( age > 0 ) then
+		GameTooltip:AddLine(string.format(LFG_LIST_TOOLTIP_AGE, SecondsToTime(age, false, false, 1, false)));
+	end
+	GameTooltip:AddLine(string.format(LFG_LIST_TOOLTIP_MEMBERS, numTanks + numHealers + numDPS, numTanks, numHealers, numDPS));
+
+	if ( numBNetFriends + numCharFriends + numGuildMates > 0 ) then
+		GameTooltip:AddLine(" ");
+		GameTooltip:AddLine(LFG_LIST_TOOLTIP_FRIENDS_IN_GROUP);
+		GameTooltip:AddLine(LFGListSearchResultUtil_GetFriendList(resultID), 1, 1, 1, true);
+	end
+	GameTooltip:Show();
+end
+
+function LFGListSearchResultUtil_GetFriendList(resultID)
+	local list = "";
+	local bNetFriends, charFriends, guildMates = C_LFGList.GetSearchResultFriends(resultID);
+	local displayedFirst = false;
+
+	--BNet friends
+	for i=1, #bNetFriends do
+		if ( displayedFirst ) then
+			list = list..PLAYER_LIST_DELIMITER;
+		else
+			displayedFirst = true;
+		end
+		list = list..FRIENDS_BNET_NAME_COLOR_CODE..bNetFriends[i]..FONT_COLOR_CODE_CLOSE;
+	end
+
+	--Character friends
+	for i=1, #charFriends do
+		if ( displayedFirst ) then
+			list = list..PLAYER_LIST_DELIMITER;
+		else
+			displayedFirst = true;
+		end
+		list = list..FRIENDS_WOW_NAME_COLOR_CODE..charFriends[i]..FONT_COLOR_CODE_CLOSE;
+	end
+
+	--Guild mates
+	for i=1, #guildMates do
+		if ( displayedFirst ) then
+			list = list..PLAYER_LIST_DELIMITER;
+		else
+			displayedFirst = true;
+		end
+		list = list..RGBTableToColorCode(ChatTypeInfo.GUILD)..guildMates[i]..FONT_COLOR_CODE_CLOSE;
+	end
+	return list;
+end
+
+-------------------------------------------------------
 ----------Utility functions
 -------------------------------------------------------
 function LFGListUtil_AugmentWithBest(filters, categoryID, groupID, activityID)
@@ -555,4 +832,29 @@ function LFGListUtil_GetDecoratedCategoryName(categoryName, filter, useColors)
 	end
 
 	return string.format(LFG_LIST_CATEGORY_FORMAT, categoryName, colorStart, extraName, colorEnd);
+end
+
+function LFGListUtil_SortSearchResultsCB(id1, id2)
+	local id1, activityID1, name1, comment1, voiceChat1, iLvl1, age1, numBNetFriends1, numCharFriends1, numGuildMates1, numTanks1, numHealers1, numDPS1 = C_LFGList.GetSearchResultInfo(id1);
+	local id2, activityID2, name2, comment2, voiceChat2, iLvl2, age2, numBNetFriends2, numCharFriends2, numGuildMates2, numTanks2, numHealers2, numDPS2 = C_LFGList.GetSearchResultInfo(id2);
+
+	--If one has more friends, do that one first
+	if ( numBNetFriends1 ~= numBNetFriends2 ) then
+		return numBNetFriends1 > numBNetFriends2;
+	end
+
+	if ( numCharFriends1 ~= numCharFriends2 ) then
+		return numCharFriends1 > numCharFriends2;
+	end
+
+	if ( numGuildMates1 ~= numGuildMates2 ) then
+		return numGuildMates1 > numGuildMates2;
+	end
+
+	--If we aren't sorting by anything else, just go by ID
+	return id1 > id2;
+end
+
+function LFGListUtil_SortSearchResults(results)
+	table.sort(results, LFGListUtil_SortSearchResultsCB);
 end
