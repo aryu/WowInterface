@@ -1026,14 +1026,21 @@
 				<Anchors>
 					<Anchor point="TOPRIGHT" relativeKey="$parent.LeftInset" x="-5" y="-9"/>
 				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+							<Size x="10" y="12"/>
+							<Anchors>
+								<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
 				<Scripts>
 					<OnClick> 
 						PlaySound("igMainMenuOptionCheckBoxOn");
 						ToggleDropDownMenu(1, nil, MountJournalFilterDropDown, "MountJournalFilterButton", 74, 15);
 					</OnClick>	
-					<OnLoad>
-						self.rightArrow:Show();
-					</OnLoad>
 				</Scripts>						
 			</Button>
 			<Frame name="$parentFilterDropDown" inherits="UIDropDownMenuTemplate">
@@ -1340,14 +1347,21 @@
 				<Anchors>
 					<Anchor point="TOPRIGHT" relativeTo="$parentLeftInset" x="-5" y="-9"/>
 				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+							<Size x="10" y="12"/>
+							<Anchors>
+								<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
 				<Scripts>
 					<OnClick> 
 						PlaySound("igMainMenuOptionCheckBoxOn");
 						ToggleDropDownMenu(1, nil, PetJournalFilterDropDown, "PetJournalFilterButton", 74, 15);
 					</OnClick>	
-					<OnLoad>
-						self.rightArrow:Show();
-					</OnLoad>
 				</Scripts>						
 			</Button>
 			<Frame name="$parentFilterDropDown" inherits="UIDropDownMenuTemplate">
@@ -2361,14 +2375,21 @@
 				<Anchors>
 					<Anchor point="TOPRIGHT" x="-15" y="-35"/>
 				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+							<Size x="10" y="12"/>
+							<Anchors>
+								<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
 				<Scripts>
 					<OnClick>
 						PlaySound("igMainMenuOptionCheckBoxOn");
 						ToggleDropDownMenu(1, nil, ToyBoxFilterDropDown, "ToyBoxFilterButton", 74, 15);
 					</OnClick>
-					<OnLoad>
-						self.rightArrow:Show();
-					</OnLoad>
 				</Scripts>
 			</Button>
 			<Frame name="$parentFilterDropDown" inherits="UIDropDownMenuTemplate">

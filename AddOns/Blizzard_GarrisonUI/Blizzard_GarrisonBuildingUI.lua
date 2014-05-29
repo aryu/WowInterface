@@ -830,7 +830,9 @@ function GarrisonPlot_OnReceiveDrag(self)
 		local id, name, texPrefix, icon = C_Garrison.GetOwnedBuildingInfoAbbrev(self.plotID);
 		confirmation.oldBuilding = {buildingID = self.buildingID, name = name, icon = icon, texPrefix = texPrefix};
 	else
-		GarrisonBuildingFrameConfirmation_SetContext("build")
+		C_Garrison.PlaceBuilding(self.plotID, GarrisonBuildingPlacer.info.buildingID);
+		GarrisonBuildingPlacer_Clear();
+		return;
 	end
 	local _, _, currencyTexture = GetCurrencyInfo(GARRISON_CURRENCY);
 	confirmation.Cost:SetText(GarrisonBuildingPlacer.info.cost.."  |T"..currencyTexture..":0:0:0:-1|t ");

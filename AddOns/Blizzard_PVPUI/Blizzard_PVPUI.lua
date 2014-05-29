@@ -941,12 +941,14 @@ local CONQUEST_TOOLTIP_PADDING = 30 --counts both sides
 function ConquestFrameButton_OnEnter(self)
 	local tooltip = ConquestTooltip;
 	
-	local rating, seasonBest, weeklyBest, seasonPlayed, _, weeklyPlayed, _, cap = GetPersonalRatedInfo(self.id);
+	local rating, seasonBest, weeklyBest, seasonPlayed, seasonWon, weeklyPlayed, weeklyWon, cap = GetPersonalRatedInfo(self.id);
 	
 	tooltip.WeeklyBest:SetText(PVP_BEST_RATING..weeklyBest);
+	tooltip.WeeklyGamesWon:SetText(PVP_GAMES_WON..weeklyPlayed);
 	tooltip.WeeklyGamesPlayed:SetText(PVP_GAMES_PLAYED..weeklyPlayed);
 	
 	tooltip.SeasonBest:SetText(PVP_BEST_RATING..seasonBest);
+	tooltip.SeasonWon:SetText(PVP_GAMES_WON..seasonWon);
 	tooltip.SeasonGamesPlayed:SetText(PVP_GAMES_PLAYED..seasonPlayed);
 
 	tooltip.ProjectedCap:SetText(cap);

@@ -425,6 +425,7 @@
 						<Scripts>
 							<OnClick>
 								PlaySound("igMainMenuOption");
+								DepositReagentBank();
 							</OnClick>
 						</Scripts>
 					</Button>

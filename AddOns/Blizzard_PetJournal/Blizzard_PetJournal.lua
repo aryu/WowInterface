@@ -2398,9 +2398,12 @@ function ToyBox_OnEvent(self, event, itemID, new)
 end
 
 function ToyBox_OnShow(self)
-	SetPortraitToTexture(PetJournalParentPortrait,"Interface\\Icons\\Trade_Archaeology_ChestofTinyGlassAnimals");
+	SetPortraitToTexture(PetJournalParentPortrait,"Interface\\Icons\\Trade_Archaeology_ChestofTinyGlassAnimals");	
+	C_ToyBox.FilterToys();
+	ToyBox_UpdatePages();	
+	ToyBox_UpdateProgressBar();
+	ToyBox_UpdateButtons();
 end
-
 
 function ToyBoxOptionsMenu_Init(self, level)
 	local info = UIDropDownMenu_CreateInfo();

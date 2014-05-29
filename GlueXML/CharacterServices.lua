@@ -173,7 +173,7 @@ CharacterUpgradeFlow.numSteps = 4;
 local EXPANSION_LEVEL_MOP = 4
 
 function CharacterServicesMaster_UpdateServiceButton()
-	if (GetAccountExpansionLevel() < EXPANSION_LEVEL_MOP) then -- You do not have MoP or above so you cannot consume the boost distributions.
+	if (GetAccountExpansionLevel() < EXPANSION_LEVEL_MOP or CharacterSelect.undeleting) then
 		CharacterServicesTokenNormal:Hide();
 		CharacterServicesTokenWoDFree:Hide();
 		return;

@@ -798,6 +798,7 @@ function WorldStateScoreFrame_Update()
 				scoreButton.honorableKills:Hide();
 				scoreButton.honorGained:Hide();
 				scoreButton.deaths:Hide();
+				scoreButton.bgRating:Hide();
 			else
 				scoreButton.name.text:SetWidth(175);
 				scoreButton.deaths:SetText(deaths);

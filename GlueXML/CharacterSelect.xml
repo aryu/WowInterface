@@ -882,6 +882,7 @@
 										self:SetWidth(self:GetTextWidth() + 50);
 									</OnLoad>
 									<OnClick>
+										PlaySound("igMainMenuOptionCheckBoxOn");
 										CharacterSelect_EndCharacterUndelete();
 									</OnClick>
 									<OnUpdate>
@@ -912,6 +913,7 @@
 										GlueTooltip:Hide();
 									</OnLeave>
 									<OnClick>
+										PlaySound("igMainMenuOptionCheckBoxOn");
 										CharacterSelect_StartCharacterUndelete();
 									</OnClick>
 									<OnLoad>
@@ -1676,7 +1678,7 @@
 									<Anchor point="TOP" x="0" y="-54"/>
 								</Anchors>
 							</Frame>
-							<Button inherits="GlueButtonSmallTemplate" text="CREATE_CHARACTER">
+							<Button parentKey="CreateTemplateButton" inherits="GlueButtonSmallTemplate" text="CREATE_CHARACTER">
 								<Size x="200" y="45"/>
 								<Anchors>
 									<Anchor point="BOTTOM" x="0" y="10"/>

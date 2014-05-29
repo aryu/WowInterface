@@ -62,7 +62,7 @@ function BankFrameItemButton_Update (button)
 	if( button.isBag ) then
 		container = -4;
 	end
-	local texture = button.Icon;
+	local texture = button.icon;
 	local inventoryID = button:GetInventorySlot();
 	local textureName = GetInventoryItemTexture("player",inventoryID);
 	local _, _, _, quality, _, _, _, isFiltered = GetContainerItemInfo(container, buttonID);
@@ -430,23 +430,26 @@ end
 function ReagentBankFrame_OnLoad(self)
 	self:SetID(REAGENTBANK_CONTAINER);
 	self.size = 0;
-	if(not IsReagentBankUnlocked()) then
-		self:RegisterEvent("REAGENTBANK_PURCHASED");
-		ReagentBankFrame.UnlockInfo:Show();
-		MoneyFrame_Update( ReagentBankFrame.UnlockInfo.CostMoneyFrame, GetReagentBankCost());
-		ReagentBankFrame.DespositButton:Disable();
-	end
+	self:RegisterEvent("REAGENTBANK_PURCHASED");
 end
 
 function ReagentBankFrame_OnEvent(self, event, ...)
-	if(event == "REAGENTBANK_PURCHASED")then
-		self:UnregisterEvent("REAGENTBANK_PURCHASED");
+	if(event == "REAGENTBANK_PURCHASED")then		
 		ReagentBankFrame.UnlockInfo:Hide();
 		ReagentBankFrame.DespositButton:Enable();
 	end
 end
 
 function ReagentBankFrame_OnShow(self)
+	if(not IsReagentBankUnlocked()) then		
+		ReagentBankFrame.UnlockInfo:Show();
+		MoneyFrame_Update( ReagentBankFrame.UnlockInfo.CostMoneyFrame, GetReagentBankCost());
+		ReagentBankFrame.DespositButton:Disable();
+	else
+		ReagentBankFrame.UnlockInfo:Hide();
+		ReagentBankFrame.DespositButton:Enable();
+	end
+
 	if( not self.slots_initialized ) then
 		self.slots_initialized = true;
 		self.numRow = 7;

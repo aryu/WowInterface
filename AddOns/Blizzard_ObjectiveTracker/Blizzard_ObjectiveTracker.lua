@@ -852,19 +852,31 @@ function DEFAULT_OBJECTIVE_TRACKER_MODULE:StaticReanchor()
 	self:EndLayout(true);
 end
 
+function ObjectiveTrackerFrame_OnUpdate(self, elapsed)
+	if ( self:GetHeight() > 0 ) then
+		self:SetScript("OnUpdate", nil);
+		ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_ALL);
+	end
+end
+
 function ObjectiveTracker_Update(reason, id)
 	local tracker = ObjectiveTrackerFrame;
 
 	if ( not tracker.initialized ) then
 		return;
 	end
-	
+
+	tracker.BlocksFrame.maxHeight = ObjectiveTrackerFrame.BlocksFrame:GetHeight();
+	if ( tracker.BlocksFrame.maxHeight == 0 ) then
+		tracker:SetScript("OnUpdate", ObjectiveTrackerFrame_OnUpdate);
+		return;
+	end
+
 	OBJECTIVE_TRACKER_UPDATE_REASON = reason or OBJECTIVE_TRACKER_UPDATE_ALL;
 	OBJECTIVE_TRACKER_UPDATE_ID = id;
 
 	tracker.BlocksFrame.currentBlock = nil;
 	tracker.BlocksFrame.contentsHeight = 0;
-	tracker.BlocksFrame.maxHeight = ObjectiveTrackerFrame.BlocksFrame:GetHeight();
 
 	-- mark headers unused
 	for i = 1, #tracker.MODULES do

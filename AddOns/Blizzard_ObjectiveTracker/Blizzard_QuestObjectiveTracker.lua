@@ -96,6 +96,10 @@ function QUEST_TRACKER_MODULE:OnBlockHeaderClick(block, mouseButton)
 			]]--
 			if ( GetQuestLogIsAutoComplete(block.questLogIndex) ) then
 				-- TODO: Handle with ShowQuestComplete
+				
+				-- TEMP: (RNM) Copied the line below to fix an issue where 
+				-- auto complete quests weren't showing the detail quest frame.
+				QuestLogPopupDetailFrame_Show(block.questLogIndex);
 			else
 				QuestLogPopupDetailFrame_Show(block.questLogIndex);
 			end

@@ -292,7 +292,7 @@ size=512,512
 	</Button>
 	
 	<Frame name="QuestChoiceFrame" frameStrata="HIGH" hidden="true" enableMouse="true" parent="UIParent" toplevel="true">
-		<Size x="523" y="440"/>
+		<Size x="600" y="480"/>
 		<Anchors>
 			<Anchor point="CENTER" />
 		</Anchors>
@@ -443,12 +443,12 @@ size=512,512
 		<Frames>
 			<Frame name="$parentOption1" parentKey="Option1" inherits="QuestChoiceOptionTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeKey="$parent.QuestionFrameLeft" relativePoint="BOTTOMLEFT" x="4" y="0" />
+					<Anchor point="TOPLEFT" relativeKey="$parent.QuestionFrameLeft" relativePoint="BOTTOMLEFT" x="24" y="-20" />
 				</Anchors>
 			</Frame>
 			<Frame name="$parentOption2" parentKey="Option2" inherits="QuestChoiceOptionTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeKey="$parent.Option1" relativePoint="TOPRIGHT" x="10" />
+					<Anchor point="TOPLEFT" relativeKey="$parent.Option1" relativePoint="TOPRIGHT" x="47" />
 				</Anchors>
 			</Frame>
 			<Button parentKey="CloseButton" inherits="UIPanelCloseButton">

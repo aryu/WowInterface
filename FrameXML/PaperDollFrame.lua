@@ -155,19 +155,16 @@ PAPERDOLL_STATINFO = {
 	
 	-- Base stats
 	["STRENGTH"] = {
-		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, 1); end 
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, LE_UNIT_STAT_STRENGTH); end 
 	},
 	["AGILITY"] = {
-		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, 2); end 
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, LE_UNIT_STAT_AGILITY); end 
 	},
 	["INTELLECT"] = {
-		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, 4); end 
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, LE_UNIT_STAT_INTELLECT); end 
 	},
 	["STAMINA"] = {
-		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, 3); end 
-	},
-	["SPIRIT"] = {
-		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, 5); end 
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, LE_UNIT_STAT_STAMINA); end 
 	},
 	
 	-- Enhancements
@@ -179,6 +176,12 @@ PAPERDOLL_STATINFO = {
 	},
 	["MASTERY"] = {
 		updateFunc = function(statFrame, unit) PaperDollFrame_SetMastery(statFrame, unit); end
+	},
+	["SPIRIT"] = {
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetStat(statFrame, unit, LE_UNIT_STAT_SPIRIT); end 
+	},
+	["BONUS_ARMOR"] = {
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetBonusArmor(statFrame, unit); end
 	},
 	["MULTISTRIKE"] = {
 		updateFunc = function(statFrame, unit) PaperDollFrame_SetMultistrike(statFrame, unit); end
@@ -206,7 +209,16 @@ PAPERDOLL_STATINFO = {
 	["ATTACK_ATTACKSPEED"] = {
 		updateFunc = function(statFrame, unit) PaperDollFrame_SetAttackSpeed(statFrame, unit); end
 	},
-	
+	["ENERGY_REGEN"] = {
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetEnergyRegen(statFrame, unit); end
+	},
+	["RUNE_REGEN"] = {
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetRuneRegen(statFrame, unit); end
+	},
+	["FOCUS_REGEN"] = {
+		updateFunc = function(statFrame, unit) PaperDollFrame_SetFocusRegen(statFrame, unit); end
+	},
+
 	-- Spell
 	["SPELLPOWER"] = {
 		updateFunc = function(statFrame, unit) PaperDollFrame_SetSpellPower(statFrame, unit); end
@@ -259,7 +271,6 @@ PAPERDOLL_STATCATEGORIES = {
 			"AGILITY",
 			"INTELLECT",
 			"STAMINA",
-			"SPIRIT"
 		}
 	},
 	
@@ -269,6 +280,8 @@ PAPERDOLL_STATCATEGORIES = {
 			"CRITCHANCE",
 			"HASTE",
 			"MASTERY",
+			"SPIRIT",
+			"BONUS_ARMOR",
 			"MULTISTRIKE",
 			"READINESS",
 			"LIFESTEAL",
@@ -283,6 +296,9 @@ PAPERDOLL_STATCATEGORIES = {
 			"ATTACK_DPS", 
 			"ATTACK_AP", 
 			"ATTACK_ATTACKSPEED", 
+			"ENERGY_REGEN",
+			"RUNE_REGEN",
+			"FOCUS_REGEN",
 		}
 	},
 				
@@ -680,7 +696,7 @@ function PaperDollFrame_SetStat(statFrame, unit, statIndex)
 		unitClass = strupper(unitClass);
 		
 		-- Strength
-		if ( statIndex == 1 ) then
+		if ( statIndex == LE_UNIT_STAT_STRENGTH ) then
 			if (not STRENGTH_USELESS_STAT[unitClass]) then
 				local attackPower = GetAttackPowerForStat(statIndex,effectiveStat);
 				if (HasAPEffectsSpellPower()) then
@@ -691,7 +707,7 @@ function PaperDollFrame_SetStat(statFrame, unit, statIndex)
 				statFrame.tooltip2 = STAT_USELESS_TOOLTIP;
 			end
 		-- Agility
-		elseif ( statIndex == 2 ) then
+		elseif ( statIndex == LE_UNIT_STAT_AGILITY ) then
 			if (not AGILITY_USELESS_STAT[unitClass]) then
 				local attackPower = GetAttackPowerForStat(statIndex,effectiveStat);
 				local tooltip = STAT_TOOLTIP_BONUS_AP;
@@ -707,10 +723,10 @@ function PaperDollFrame_SetStat(statFrame, unit, statIndex)
 				statFrame.tooltip2 = STAT_USELESS_TOOLTIP;
 			end
 		-- Stamina
-		elseif ( statIndex == 3 ) then
+		elseif ( statIndex == LE_UNIT_STAT_STAMINA ) then
 			statFrame.tooltip2 = format(statFrame.tooltip2, BreakUpLargeNumbers(((effectiveStat*UnitHPPerStamina("player")))*GetUnitMaxHealthModifier("player")));
 		-- Intellect
-		elseif ( statIndex == 4 ) then
+		elseif ( statIndex == LE_UNIT_STAT_INTELLECT ) then
 			if ( UnitHasMana("player") ) then
 				if (HasAPEffectsSpellPower()) then
 					statFrame.tooltip2 = format(STAT4_NOSPELLPOWER_TOOLTIP, GetSpellCritChanceFromIntellect("player"));
@@ -728,7 +744,7 @@ function PaperDollFrame_SetStat(statFrame, unit, statIndex)
 				statFrame.tooltip2 = STAT_USELESS_TOOLTIP;
 			end
 		-- Spirit
-		elseif ( statIndex == 5 ) then
+		elseif ( statIndex == LE_UNIT_STAT_SPIRIT ) then
 			-- All mana regen stats are displayed as mana/5 sec.
 			if ( UnitHasMana("player") ) then
 				local regen = GetUnitManaRegenRateFromSpirit("player");
@@ -771,8 +787,12 @@ function PaperDollFrame_SetArmor(statFrame, unit)
 	_G[statFrame:GetName().."Label"]:SetText(format(STAT_FORMAT, ARMOR));
 	local text = _G[statFrame:GetName().."StatText"];
 
-	PaperDollFormatStat(ARMOR, base, posBuff, negBuff, statFrame, text);
+	local bonusArmor = posBuff - negBuff;
+	effectiveArmor = effectiveArmor - bonusArmor;
+
+	PaperDollFrame_SetLabelAndText(statFrame, STAT_ARMOR, effectiveArmor, false);
 	local armorReduction = PaperDollFrame_GetArmorReduction(effectiveArmor, UnitLevel(unit));
+	statFrame.tooltip = HIGHLIGHT_FONT_COLOR_CODE..format(PAPERDOLLFRAME_TOOLTIP_FORMAT, ARMOR).." "..string.format("%s", effectiveArmor)..FONT_COLOR_CODE_CLOSE;
 	statFrame.tooltip2 = format(DEFAULT_STATARMOR_TOOLTIP, armorReduction);
 	
 	if ( unit == "player" ) then
@@ -781,6 +801,21 @@ function PaperDollFrame_SetArmor(statFrame, unit)
 			statFrame.tooltip2 = statFrame.tooltip2 .. "\n" .. format(PET_BONUS_TOOLTIP_ARMOR, petBonus);
 		end
 	end
+	
+	statFrame:Show();
+end
+
+function PaperDollFrame_SetBonusArmor(statFrame, unit)
+	local _, _, _, posBuff, negBuff = UnitArmor(unit);
+	_G[statFrame:GetName().."Label"]:SetText(format(STAT_FORMAT, ARMOR));
+	local text = _G[statFrame:GetName().."StatText"];
+
+	local bonusArmor = posBuff - negBuff;
+
+	PaperDollFrame_SetLabelAndText(statFrame, STAT_BONUS_ARMOR, bonusArmor, false);
+	local armorReduction = PaperDollFrame_GetArmorReduction(bonusArmor, UnitLevel(unit));
+	statFrame.tooltip = HIGHLIGHT_FONT_COLOR_CODE..format(PAPERDOLLFRAME_TOOLTIP_FORMAT, BONUS_ARMOR).." "..string.format("%s", bonusArmor)..FONT_COLOR_CODE_CLOSE;
+	statFrame.tooltip2 = format(DEFAULT_STATARMOR_TOOLTIP, armorReduction);
 	
 	statFrame:Show();
 end

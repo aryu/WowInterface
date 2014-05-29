@@ -569,11 +569,21 @@
 					</Frame>
 				</Frames>
 			</Frame>
-			<Frame parentKey="FollowerList" inherits="GarrisonListTemplate" name="$parentFollowers" hidden="true">
+			<Frame parentKey="FollowerList" inherits="GarrisonListTemplateHeader" name="$parentFollowers" hidden="true" frameStrata="HIGH">
 				<Size x="305" y="565"/>
 				<Anchors>
 					<Anchor point="BOTTOMLEFT" x="33" y="34"/>
 				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture file="Interface\Common\ShadowOverlay-Left">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativePoint="TOPRIGHT"/>
+								<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
 				<Scripts>
 					<OnLoad>
 						self:SetFrameLevel(self:GetParent():GetFrameLevel() + 2);

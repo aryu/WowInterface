@@ -4,8 +4,8 @@ CURRENCY_HEIGHT = 20;
 MAX_CURRENCIES = 3;
 REWARDS_WIDTH = 200;
 INIT_REWARDS_HEIGHT = 18; --basically total vertical padding between rewards
-INIT_OPTION_HEIGHT = 268;
-INIT_WINDOW_HEIGHT = 440;
+INIT_OPTION_HEIGHT = 278;
+INIT_WINDOW_HEIGHT = 480;
 OPTION_STATIC_HEIGHT = 136; --height of artwork, button, and minimum padding
 
 function QuestChoiceFrame_OnEvent(self, event) 
