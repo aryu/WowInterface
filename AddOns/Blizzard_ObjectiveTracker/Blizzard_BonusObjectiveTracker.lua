@@ -86,7 +86,7 @@ function BonusObjectiveTracker_OnBlockAnimOutFinished(self)
 	block:SetAlpha(0);
 	block.used = nil;
 	BONUS_OBJECTIVE_TRACKER_MODULE:FreeBlock(block);
-	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_BONUS_OBJECTIVE);
+	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_ALL);
 end
 
 function BonusObjectiveTracker_OnBlockEnter(block)
@@ -161,7 +161,7 @@ function BonusObjectiveTracker_AddReward(questID, block, xp, money)
 	if ( not xp ) then
 		xp = GetQuestLogRewardXP(questID);
 	end
-	if ( xp > 0 ) then
+	if ( xp > 0 and UnitLevel("player") < MAX_PLAYER_LEVEL ) then
 		local t = { };
 		t.label = xp;
 		t.texture = "Interface\\Icons\\XP_Icon";
@@ -205,7 +205,13 @@ function BonusObjectiveTracker_AddReward(questID, block, xp, money)
 	end
 	COMPLETED_BONUS_DATA[block.id] = data;
 	-- try to play it
-	BonusObjectiveTracker_AnimateReward(block);	
+	if( #data.rewards > 0 ) then
+		BonusObjectiveTracker_AnimateReward(block);
+	else
+		local oldPosIndex = COMPLETED_BONUS_DATA[block.id].posIndex;
+		COMPLETED_BONUS_DATA[block.id] = nil;
+		BonusObjectiveTracker_OnAnimateNextReward(oldPosIndex);
+	end
 end
 
 function BonusObjectiveTracker_AnimateReward(block)
@@ -226,6 +232,7 @@ function BonusObjectiveTracker_AnimateReward(block)
 		rewardsFrame.Anim.RewardsBottomAnim:SetOffset(0, -contentsHeight);
 		rewardsFrame.Anim.RewardsShadowAnim:SetToScale(0.8, contentsHeight / 16);
 		rewardsFrame.Anim:Play();
+		PlaySoundKitID(45142); --UI_BonusEventSystemVignettes
 		-- configure reward frames
 		for i = 1, numRewards do
 			local rewardItem = rewardsFrame.Rewards[i];
@@ -244,6 +251,9 @@ function BonusObjectiveTracker_AnimateReward(block)
 			rewardItem.Label:SetText(rewardData.label);
 			rewardItem.ItemIcon:SetTexture(rewardData.texture);
 			rewardItem:Show();
+			if( rewardItem.Anim:IsPlaying() ) then
+				rewardItem.Anim:Stop();
+			end
 			rewardItem.Anim:Play();
 		end
 		-- hide unused reward items
@@ -259,10 +269,12 @@ function BonusObjectiveTracker_OnAnimateRewardDone(self)
 	local oldPosIndex = COMPLETED_BONUS_DATA[rewardsFrame.id].posIndex;
 	COMPLETED_BONUS_DATA[rewardsFrame.id] = nil;
 	rewardsFrame.id = nil;
-	-- kill anims
-	for i = 1, #rewardsFrame.Rewards do
-		rewardsFrame.Rewards[i].Anim:Stop();
-	end
+	
+	BonusObjectiveTracker_OnAnimateNextReward(oldPosIndex);
+end
+
+function BonusObjectiveTracker_OnAnimateNextReward(oldPosIndex)
+	local rewardsFrame = ObjectiveTrackerBonusRewardsFrame;
 	-- look for another reward to animate and fix positions
 	local nextAnimBlock;
 	for id, data in pairs(COMPLETED_BONUS_DATA) do
@@ -304,6 +316,12 @@ function BonusObjectiveTracker_ShowRewardsTooltip(block)
 		end
 	end
 
+	if ( HaveQuestData(questID) and GetQuestLogRewardXP(questID) == 0 and GetNumQuestLogRewardCurrencies(questID) == 0
+								and GetNumQuestLogRewards(questID) == 0 and GetQuestLogRewardMoney(questID) == 0 ) then
+		GameTooltip:Hide();
+		return;
+	end
+
 	GameTooltip:ClearAllPoints();
 	GameTooltip:SetPoint("TOPRIGHT", block, "TOPLEFT", 0, 0);
 	GameTooltip:SetOwner(block, "ANCHOR_PRESERVE");
@@ -333,11 +351,13 @@ function BonusObjectiveTracker_ShowRewardsTooltip(block)
 			local text;
 			if ( numItems > 1 ) then
 				text = string.format(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT, texture, numItems, name);
-			else
+			elseif( texture and name ) then
 				text = string.format(BONUS_OBJECTIVE_REWARD_FORMAT, texture, name);			
 			end
-			local color = ITEM_QUALITY_COLORS[quality];
-			GameTooltip:AddLine(text, color.r, color.g, color.b);
+			if( text ) then
+				local color = ITEM_QUALITY_COLORS[quality];
+				GameTooltip:AddLine(text, color.r, color.g, color.b);
+			end
 		end
 		-- money
 		local money = GetQuestLogRewardMoney(questID);
@@ -528,6 +548,7 @@ end
 local function UpdateQuestBonusObjectives(BlocksFrame)
 	BONUS_OBJECTIVE_TRACKER_MODULE.Header.animateReason = OBJECTIVE_TRACKER_UPDATE_TASK_ADDED;
 	local tasksTable = InternalGetTasksTable();
+	local displayObjectiveHeader = false;
 	for i = 1, #tasksTable do
 		local questID = tasksTable[i];
 		local isInArea, isOnMap, numObjectives = InternalGetTaskInfo(questID);
@@ -537,7 +558,8 @@ local function UpdateQuestBonusObjectives(BlocksFrame)
 			local block = BONUS_OBJECTIVE_TRACKER_MODULE:GetBlock(questID);
 			local taskFinished = true;
 			for objectiveIndex = 1, numObjectives do
-				local text, objectiveType, finished = InternalGetQuestObjectiveInfo(questID, objectiveIndex);
+				local text, objectiveType, finished, displayAsObjective = InternalGetQuestObjectiveInfo(questID, objectiveIndex);
+				displayObjectiveHeader = displayObjectiveHeader or displayAsObjective;
 				if ( text ) then
 					if ( finished ) then
 						local existingLine = block.lines[objectiveIndex];
@@ -598,6 +620,9 @@ local function UpdateQuestBonusObjectives(BlocksFrame)
 				BonusObjectiveTracker_SetBlockState(block, "LEAVING");
 			end
 		end
+	end
+	if( displayObjectiveHeader ) then
+		BONUS_OBJECTIVE_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_OBJECTIVE);
 	end
 	if ( OBJECTIVE_TRACKER_UPDATE_REASON == OBJECTIVE_TRACKER_UPDATE_TASK_ADDED ) then
 		PlaySound("UI_Scenario_Stage_End");
@@ -709,13 +734,13 @@ function BONUS_OBJECTIVE_TRACKER_MODULE:AddProgressBar(block, line, questID, fin
 			self.usedProgressBars[block] = { };
 		end
 		self.usedProgressBars[block][line] = progressBar;
+		progressBar:RegisterEvent("QUEST_LOG_UPDATE");
 		progressBar:Show();
 		progressBar.Bar.Label:Hide();
 		-- initialize to the right values
 		progressBar.questID = questID;
 		if( not finished ) then
-			progressBar:RegisterEvent("QUEST_LOG_UPDATE");
-			BonusObjectiveTrackerProgressBar_OnEvent(progressBar)
+			BonusObjectiveTrackerProgressBar_SetValue( progressBar, GetQuestProgressBarPercent(questID) );
 		end
 	end	
 	-- anchor the status bar
@@ -725,16 +750,14 @@ function BONUS_OBJECTIVE_TRACKER_MODULE:AddProgressBar(block, line, questID, fin
 	else
 		progressBar:SetPoint("TOPLEFT", 0, -block.module.lineSpacing);
 	end
-	
+
 	if( finished ) then
 		progressBar.finished = true;
-		progressBar.Bar:SetValue(100)
-		progressBar.Bar.Label:SetFormattedText(PERCENTAGE_STRING, 100);
+		BonusObjectiveTrackerProgressBar_SetValue( progressBar, 100 );
 	end
-
-	progressBar.block = block;
-	progressBar.questID = questID;
 	
+	progressBar.block = block;
+	progressBar.questID = questID;	
 
 	line.ProgressBar = progressBar;
 	block.height = block.height + progressBar.height + block.module.lineSpacing;
@@ -750,43 +773,56 @@ function BONUS_OBJECTIVE_TRACKER_MODULE:FreeProgressBar(block, line)
 		progressBar:Hide(); 
 		line.ProgressBar = nil;
 		progressBar.finished = nil;
+		progressBar.AnimValue = nil;
 		progressBar:UnregisterEvent("QUEST_LOG_UPDATE");
 	end
 end
 
-function BonusObjectiveTrackerProgressBar_OnEvent(self)
-	local percent = GetQuestProgressBarPercent(self.questID);
-	if( self.finished or percent >= 100 ) then
-		BonusObjectiveTrackerProgressBar_PlayFlareAnim(self, percent - (self.AnimValue or 0));
-		return;
-	end
+function BonusObjectiveTrackerProgressBar_SetValue(self, percent)
 	self.Bar:SetValue(percent);
 	self.Bar.Label:SetFormattedText(PERCENTAGE_STRING, percent);
-	if( self.AnimValue ) then
-		BonusObjectiveTrackerProgressBar_PlayFlareAnim(self, percent - self.AnimValue);
-	end
 	self.AnimValue = percent;
 end
 
-function BonusObjectiveTrackerProgressBar_PlayFlareAnim(progressBar, delta)
-	local prefix = "";
-	local width = progressBar.Bar:GetWidth();
-	local offset = 0;
-	if( delta < 1 ) then
-		return;
-	elseif( delta < 10 ) then
-		prefix = "Small";
-		offset = width * progressBar.AnimValue/100-12;
-	else
-		offset = width * progressBar.AnimValue/100-12;
+function BonusObjectiveTrackerProgressBar_OnEvent(self)
+	local percent = 100;
+	if( not self.finished ) then
+		percent = GetQuestProgressBarPercent(self.questID);
 	end
-	local flare = progressBar[prefix.."Flare1"];
-	if( flare.FlareAnim:IsPlaying() ) then
-		flare = progressBar[prefix.."Flare2"];
+	BonusObjectiveTrackerProgressBar_PlayFlareAnim(self, percent - self.AnimValue);
+	BonusObjectiveTrackerProgressBar_SetValue(self, percent);
+end
+
+function BonusObjectiveTrackerProgressBar_PlayFlareAnim(progressBar, delta)
+	if( progressBar.AnimValue >= 100 ) then
+		return;
+	end
+	
+	if( delta > 1 ) then
+		local width = progressBar.Bar:GetWidth();
+		local offset = width * progressBar.AnimValue/100-12;
+		local prefix = "";
+		if( delta < 10 ) then
+			prefix = "Small";
+		end
+		local flare = progressBar[prefix.."Flare1"];
+		
 		if( flare.FlareAnim:IsPlaying() ) then
+			flare = progressBar[prefix.."Flare2"];
+			if( not flare.FlareAnim:IsPlaying() ) then
+				flare:SetPoint("LEFT", progressBar.Bar, "LEFT", offset,0);
+				flare.FlareAnim:Play();
+			end
+		end
+	end
+	
+	local barFlare = progressBar["FullBarFlare1"];
+	if( barFlare.FlareAnim:IsPlaying() ) then
+		barFlare = progressBar["FullBarFlare2"];
+		if( barFlare.FlareAnim:IsPlaying() ) then
 			return;
 		end
 	end
-	flare:SetPoint("LEFT", progressBar.Bar, "LEFT", offset,0);
-	flare.FlareAnim:Play();
+	
+	barFlare.FlareAnim:Play();
 end

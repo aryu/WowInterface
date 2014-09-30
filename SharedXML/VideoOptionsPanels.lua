@@ -35,6 +35,9 @@ local ErrorCodes =
 	VRN_GPU_DRIVER,
 };
 
+VR_WINDOWS_32BIT = 4096;
+
+
 function VideoOptionsValueChanged(self, value, flag)
 	self.newValue = value;
 
@@ -203,9 +206,7 @@ end
 
 function ControlSetValue(self, value)
 	if (value ~= nil) then
-		if (not self.raid or GetCVarBool("RAIDsettingsEnabled")) then
-			self:SetValue(value);
-		end
+		self:SetValue(value);
 		self.value = nil;
 		self.newValue = nil;
 	end
@@ -263,9 +264,7 @@ local function FinishChanges(self)
 		Graphics_Refresh(self)
 	end
 
-	if ( GetCVarBool("RAIDsettingsEnabled") ) then
-		RaidGraphics_Quality:commitslider();
-	end
+	RaidGraphics_Quality:commitslider();
 	Graphics_Quality:commitslider();
 end
 
@@ -323,15 +322,17 @@ function VideoOptionsPanel_Cancel (self)
 end
 
 function VideoOptionsPanel_Default (self)
-	Graphics_Default(self);
-end
-
-function Graphics_Default (self)
-	SetDefaultVideoOptions(0);
 	for _, control in next, self.controls do
 		control.newValue = nil;
 		control.value = nil;
 	end
+end
+
+function Graphics_Default (self)
+	SetDefaultVideoOptions(0);
+	VideoOptionsPanel_Default( Display_);
+	VideoOptionsPanel_Default( Graphics_);
+	VideoOptionsPanel_Default( RaidGraphics_);
 	FinishChanges(self);
 end
 
@@ -362,16 +363,20 @@ function IsValid(self,index)
 		return false;
 	end
 	local valid = true;
+	local is32BitFail = false;
 	if(self.data ~= nil) then
 		if(self.data[index].cvars ~= nil) then
 			for cvar_name, cvar_value in pairs(self.data[index].cvars) do
 				if(self.validity[cvar_name][cvar_value] ~= 0) then
 					valid = false;
 				end
+				if(self.validity[cvar_name][cvar_value] == VR_WINDOWS_32BIT) then
+					is32BitFail = true;
+				end
 			end
 		end
 	end
-	return valid;
+	return valid, is32BitFail;
 end
 -------------------------------------------------------------------------------------------------------
 -- try to keep the same selection when a table has been changed
@@ -483,6 +488,23 @@ function VideoOptionsDropDown_OnClick(self)
 	VideoOptions_OnClick(dropdown, value);
 end
 
+function Display_RaidSettingsEnabled_CheckButton_OnLoad(self)
+	self.cvar = "RAIDsettingsEnabled";
+	self.SetValue = function (self, value)
+			--Don't do anything if it was already this value
+			if ( GetCVar(self.cvar) == value ) then
+				return;
+			end
+
+			BlizzardOptionsPanel_SetCVarSafe(self.cvar, value);
+			-- currently only two settings normal[0] and raid/BG[1]
+			if (not InGlue()) then
+				AutoChooseCurrentGraphicsSetting();
+			end
+		end
+	VideoOptionsCheckbox_OnLoad(self);
+end
+
 function Display_RaidSettingsEnabled_CheckButton_OnClick(self)
 	if ( self:GetChecked() ) then
 		PlaySound("igMainMenuOptionCheckBoxOn");
@@ -574,7 +596,8 @@ function Graphics_DropDownRefreshValue(self)
 		end
 		-- check warning if this control depended on the graphics quality slider
 		if ( checkWarning ) then
-			local displayWarning;
+			local isValid = true;
+			local is32BitFail = false;
 			local qualityValue;
 			if (self.raid) then
 				qualityValue = BlizzardOptionsPanel_GetCVarSafe("RAIDgraphicsQuality");
@@ -596,13 +619,15 @@ function Graphics_DropDownRefreshValue(self)
 							break;
 						end
 					end
-					if ( not IsValid(self, index) ) then
-						displayWarning = true;
-					end
+					isValid, is32BitFail = IsValid(self, index);
 				end
 			end
-			if ( displayWarning ) then
-				self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY, self.name, value);
+			if ( not isValid ) then
+				if ( is32BitFail ) then
+					self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY_32BIT, self.name, value);
+				else
+					self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY, self.name, value);
+				end
 				self.warning:Show();
 			else
 				self.warning:Hide();
@@ -718,7 +743,7 @@ function VideoOptionsDropDown_OnLoad(self)
 				if(self.data ~= nil) then
 					if(self.data[mode].cvars ~= nil) then
 						for cvar_name, cvar_value in pairs(self.data[mode].cvars) do
-							if(self.validity[cvar_name][cvar_value] ~= 0) then
+							if(self.validity[cvar_name][cvar_value] ~= 0 and self.validity[cvar_name][cvar_value] ~= VR_WINDOWS_32BIT) then
 								info.notClickable = true;
 								info.disablecolor = GREYCOLORCODE;
 							end
@@ -769,7 +794,8 @@ function VideoOptionsDropDown_OnLoad(self)
 					break;
 				end
 			end
-			if(IsValid(self, index)) then
+			local isValid, is32BitFail = IsValid(self, index);
+			if(isValid) then
 				self.selectedName = nil;
 				self.selectedValue = nil;
 				self.newValue = index;
@@ -780,7 +806,11 @@ function VideoOptionsDropDown_OnLoad(self)
 					ControlCheckCapTargets(self);
 				end
 			else
-				self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY, self.name, value);
+				if ( is32BitFail ) then
+					self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY_32BIT, self.name, value);
+				else
+					self.warning.tooltip = string.format(SETTING_BELOW_GRAPHICSQUALITY, self.name, value);
+				end
 				self.warning:Show();
 			end
 		end
@@ -819,6 +849,7 @@ end
 
 function VideoOptionsPanel_OnLoad (self, okay, cancel, default, refresh)
 	local defaults
+	self.hasApply = true;
 	if (self.raid) then
 		defaults =  {GetDefaultVideoOptions(true)};
 	else
@@ -888,6 +919,7 @@ NetworkPanelOptions = {
 function NetworkOptionsPanel_OnLoad(self)
 	self.name = NETWORK_LABEL;
 	self.options = NetworkPanelOptions;
+	self.hasApply = true;
 	BlizzardOptionsPanel_OnLoad(self);
 	OptionsFrame_AddCategory(VideoOptionsFrame, self);
 end
@@ -902,6 +934,7 @@ function NetworkOptionsPanel_CheckButton_OnClick(self)
 	if ( self.cvar ) then
 		BlizzardOptionsPanel_SetCVarSafe(self.cvar, self:GetChecked(), self.event);
 	end	
+	Graphics_EnableApply(self);
 end
 
 
@@ -912,16 +945,20 @@ LanguagesPanelOptions = {
 }
 
 function LanguagePanel_Cancel (self)
-	local languageDropDown = InterfaceOptionsLanguagesPanelLocaleDropDown;
-	if (languageDropDown.value ~= languageDropDown.oldValue) then
-		languageDropDown.SetValue(languageDropDown, languageDropDown.oldValue);
+	local dropDowns = { InterfaceOptionsLanguagesPanelLocaleDropDown, InterfaceOptionsLanguagesPanelAudioLocaleDropDown };
+	for i = 1, #dropDowns do 
+		if (dropDowns[i].value ~= dropDowns[i].oldValue) then
+			dropDowns[i].SetValue(dropDowns[i], dropDowns[i].oldValue);
+		end
 	end
 end
 
 function LanguagePanel_Okay (self)
-	local languageDropDown = InterfaceOptionsLanguagesPanelLocaleDropDown;
-	if (languageDropDown.value ~= languageDropDown.oldValue) then
-		languageDropDown.oldValue = languageDropDown.value;
+	local dropDowns = { InterfaceOptionsLanguagesPanelLocaleDropDown, InterfaceOptionsLanguagesPanelAudioLocaleDropDown };
+	for i = 1, #dropDowns do 
+		if (dropDowns[i].value ~= dropDowns[i].oldValue) then
+			dropDowns[i].oldValue = dropDowns[i].value;
+		end
 	end
 	BlizzardOptionsPanel_Okay(self);
 end
@@ -929,9 +966,21 @@ end
 function InterfaceOptionsLanguagesPanel_OnLoad (self)
 	self.name = LANGUAGES_LABEL;
 	self.options = LanguagesPanelOptions;
+	self.hasApply = true;
 	BlizzardOptionsPanel_OnLoad(self, LanguagePanel_Okay, LanguagePanel_Cancel, BlizzardOptionsPanel_Default, BlizzardOptionsPanel_Refresh);
 	OptionsFrame_AddCategory(VideoOptionsFrame, self);
 end
+
+function InterfaceOptionsLanguagesPanel_UpdateRestartTexture()
+	if (InterfaceOptionsLanguagesPanelAudioLocaleDropDown.originalValue ~= InterfaceOptionsLanguagesPanelAudioLocaleDropDown.value
+		or InterfaceOptionsLanguagesPanelLocaleDropDown.originalValue ~= InterfaceOptionsLanguagesPanelLocaleDropDown.value) then
+		Language_ShowRestartTexture(InterfaceOptionsLanguagesPanel, InterfaceOptionsLanguagesPanelLocaleDropDown.value);
+	else
+		InterfaceOptionsLanguagesPanel.RestartNeeded:Hide();
+	end
+end
+
+
 
 function InterfaceOptionsLanguagesPanelLocaleDropDown_OnLoad (self)
 	self.type = CONTROLTYPE_DROPDOWN;
@@ -942,6 +991,7 @@ function InterfaceOptionsLanguagesPanelLocaleDropDown_OnLoad (self)
 	local value = GetCVar(self.cvar);
 	self.defaultValue = GetCVarDefault(self.cvar);
 	self.oldValue = value;
+	self.originalValue = value;
 	self.value = value;
 	self.tooltip = OPTION_TOOLTIP_LOCALE;
 
@@ -951,15 +1001,22 @@ function InterfaceOptionsLanguagesPanelLocaleDropDown_OnLoad (self)
 
 	self.SetValue = 
 		function (self, value)
-			SetCVar("textLocale", value, self.event);
-			SetCVar("audioLocale", value, self.event);
-			self.value = value;
-			if ( self.oldValue ~= value ) then
-				self.gameRestart = true;
-				Language_ShowRestartTexture(self, value);
-			else
-				self.RestartNeeded:Hide();
+			local currentValue = VideoOptionsDropDownMenu_GetSelectedValue(self);
+			local audioCurrentValue = VideoOptionsDropDownMenu_GetSelectedValue(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+			-- Audio dropdown value should follow changes to text dropdown, except if user has explicitly chosen English instead of
+			-- the text level.
+			if (audioCurrentValue ~= "enUS" or currentValue == "enUS") then
+				InterfaceOptionsLanguagesPanelAudioLocaleDropDown.SetValue(InterfaceOptionsLanguagesPanelAudioLocaleDropDown, value);
 			end
+			if (value == "enUS") then
+				VideoOptionsDropDownMenu_DisableDropDown(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+			else
+				VideoOptionsDropDownMenu_EnableDropDown(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+			end
+
+			SetCVar("textLocale", value, self.event);
+			self.value = value;
+			InterfaceOptionsLanguagesPanel_UpdateRestartTexture();
 			VideoOptionsDropDownMenu_SetSelectedValue(self, value);
 		end
 	self.GetValue =
@@ -973,8 +1030,53 @@ function InterfaceOptionsLanguagesPanelLocaleDropDown_OnLoad (self)
 		end
 end
 
+function InterfaceOptionsLanguagesPanelAudioLocaleDropDown_OnLoad(self)
+	self.type = CONTROLTYPE_DROPDOWN;
+	BlizzardOptionsPanel_RegisterControl(self, self:GetParent());
+
+	self.cvar = "audioLocale";
+
+	local value = GetCVar(self.cvar);
+	self.defaultValue = GetCVarDefault(self.cvar);
+	self.oldValue = value;
+	self.originalValue = value;
+	self.value = value;
+	self.tooltip = OPTION_TOOLTIP_AUDIO_LOCALE;
+
+	VideoOptionsDropDownMenu_SetWidth(self, 200);
+	VideoOptionsDropDownMenu_Initialize(self, InterfaceOptionsLanguagesPanelLocaleDropDown_Initialize);
+	VideoOptionsDropDownMenu_SetSelectedValue(self, value);
+
+	self.SetValue = 
+		function (self, value)
+			SetCVar("audioLocale", value, self.event);
+			self.value = value;
+			InterfaceOptionsLanguagesPanel_UpdateRestartTexture();
+			VideoOptionsDropDownMenu_SetSelectedValue(self, value);
+		end
+	self.GetValue =
+		function (self)
+			return VideoOptionsDropDownMenu_GetSelectedValue(self);
+		end
+	self.RefreshValue =
+		function (self)
+			VideoOptionsDropDownMenu_Initialize(self, InterfaceOptionsLanguagesPanelAudioLocaleDropDown_Initialize);
+			VideoOptionsDropDownMenu_SetSelectedValue(self, self.value);
+			
+			local audioLocales = {GetAvailableAudioLocales()};
+			if (#audioLocales <= 1) then
+				VideoOptionsDropDownMenu_DisableDropDown(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+			else
+				VideoOptionsDropDownMenu_EnableDropDown(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+			end
+		end
+
+end
+
 function InterfaceOptionsLanguagesPanelLocaleDropDown_OnClick (self)
-	InterfaceOptionsLanguagesPanelLocaleDropDown:SetValue(self.value);
+	local dropdown = self:GetParent().dropdown;
+	dropdown.SetValue(dropdown, self.value);
+	Graphics_EnableApply(self);
 end
 
 function InterfaceOptionsLanguagesPanelLocaleDropDown_Initialize (self)
@@ -982,6 +1084,23 @@ function InterfaceOptionsLanguagesPanelLocaleDropDown_Initialize (self)
 	local info = VideoOptionsDropDownMenu_CreateInfo();
 
 	InterfaceOptionsLanguagesPanelLocaleDropDown_InitializeHelper(info, selectedValue, GetAvailableLocales());
+end
+
+function GetAvailableAudioLocales()
+	if (GetCVar("textLocale") == "enUS") then
+		return "enUS";
+	end
+	return "enUS", GetCVar("textLocale");
+end
+
+function InterfaceOptionsLanguagesPanelAudioLocaleDropDown_Initialize (self)
+	local selectedValue = VideoOptionsDropDownMenu_GetSelectedValue(self);
+	local info = VideoOptionsDropDownMenu_CreateInfo();
+
+	InterfaceOptionsLanguagesPanelLocaleDropDown_InitializeHelper(info, selectedValue, GetAvailableAudioLocales());
+	if (GetCVar("textLocale") == "enUS") then
+		VideoOptionsDropDownMenu_DisableDropDown(InterfaceOptionsLanguagesPanelAudioLocaleDropDown);
+	end
 end
 
 LanguageRegions = {}

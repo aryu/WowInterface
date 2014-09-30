@@ -114,6 +114,7 @@ end
 
 function DEFAULT_OBJECTIVE_TRACKER_MODULE:BeginLayout(isStaticReanchor)
 	self.firstBlock = nil;
+	self.lastBlock = nil;
 	self.oldContentsHeight = self.contentsHeight;
 	self.contentsHeight = 0;
 	self.contentsAnimHeight = 0;
@@ -126,6 +127,7 @@ end
 
 function DEFAULT_OBJECTIVE_TRACKER_MODULE:EndLayout(isStaticReanchor)
 	-- isStaticReanchor not used yet
+	self.lastBlock = self.BlocksFrame.currentBlock;
 	self:FreeUnusedBlocks();
 end
 
@@ -304,7 +306,7 @@ end
 function DEFAULT_OBJECTIVE_TRACKER_MODULE:SetStringText(fontString, text, useFullHeight, colorStyle, useHighlight)
 	fontString:SetHeight(0);
 	fontString:SetText(text);
-	stringHeight = fontString:GetHeight();
+	local stringHeight = fontString:GetHeight();
 	if ( stringHeight > OBJECTIVE_TRACKER_DOUBLE_LINE_HEIGHT and not useFullHeight ) then
 		fontString:SetHeight(OBJECTIVE_TRACKER_DOUBLE_LINE_HEIGHT);
 		stringHeight = OBJECTIVE_TRACKER_DOUBLE_LINE_HEIGHT;
@@ -448,7 +450,7 @@ function DEFAULT_OBJECTIVE_TRACKER_MODULE:AddProgressBar(block, line, questID)
 		progressBar.Bar.Label:Hide();
 		-- initialize to the right values
 		progressBar.questID = questID;
-		ObjectiveTrackerProgressBar_OnEvent(progressBar)
+		ObjectiveTrackerProgressBar_SetValue(progressBar, GetQuestProgressBarPercent(questID));
 	end	
 	-- anchor the status bar
 	local anchor = block.currentLine or block.HeaderText;
@@ -543,10 +545,13 @@ end
 -- *****************************************************************************************************
 -- ***** PROGRESS BARS
 -- *****************************************************************************************************
-function ObjectiveTrackerProgressBar_OnEvent(self)
-	local percent = GetQuestProgressBarPercent(self.questID);
+function ObjectiveTrackerProgressBar_SetValue(self, percent)
 	self.Bar:SetValue(percent);
 	self.Bar.Label:SetFormattedText(PERCENTAGE_STRING, percent);
+end
+
+function ObjectiveTrackerProgressBar_OnEvent(self)
+	ObjectiveTrackerProgressBar_SetValue(self, GetQuestProgressBarPercent(self.questID));
 end
 
 -- *****************************************************************************************************
@@ -578,9 +583,9 @@ end
 
 function ObjectiveTracker_Initialize(self)
 	self.MODULES = {	SCENARIO_CONTENT_TRACKER_MODULE,
+						BONUS_OBJECTIVE_TRACKER_MODULE,
 						AUTO_QUEST_POPUP_TRACKER_MODULE,
 						QUEST_TRACKER_MODULE,
-						BONUS_OBJECTIVE_TRACKER_MODULE,
 						ACHIEVEMENT_TRACKER_MODULE,
 	};
 	
@@ -602,25 +607,6 @@ function ObjectiveTracker_Initialize(self)
 	self.watchMoneyReasons = 0;
 
 	self.initialized = true;
-end
-
-function ObjectiveTracker_ReorganizeModules( isScenario )
-	local frame = ObjectiveTrackerFrame;
-	if( isScenario ) then
-		frame.MODULES = {	SCENARIO_CONTENT_TRACKER_MODULE,
-							BONUS_OBJECTIVE_TRACKER_MODULE,
-							AUTO_QUEST_POPUP_TRACKER_MODULE,
-							QUEST_TRACKER_MODULE,
-							ACHIEVEMENT_TRACKER_MODULE,
-		};
-	else
-		frame.MODULES = {	SCENARIO_CONTENT_TRACKER_MODULE,
-							AUTO_QUEST_POPUP_TRACKER_MODULE,
-							QUEST_TRACKER_MODULE,
-							BONUS_OBJECTIVE_TRACKER_MODULE,
-							ACHIEVEMENT_TRACKER_MODULE,
-		};
-	end
 end
 
 function ObjectiveTracker_OnEvent(self, event, ...)
@@ -724,6 +710,7 @@ end
 -- *****************************************************************************************************
 
 function ObjectiveTracker_MinimizeButton_OnClick(self)
+	PlaySound("igMainMenuOptionCheckBoxOn");
 	if ( ObjectiveTrackerFrame.collapsed ) then
 		ObjectiveTracker_Expand();
 	else
@@ -762,33 +749,31 @@ end
 -- ***** BLOCK CONTROL
 -- *****************************************************************************************************
 
-local function InternalAddBlock(block)
-	local module = block.module or DEFAULT_OBJECTIVE_TRACKER_MODULE;
-	local blocksFrame = module.BlocksFrame;
-	block:ClearAllPoints();
-	block.nextBlock = nil;
-	
+local function AnchorBlock(block, anchorBlock, checkFit)
+	local module = block.module;
+	local blocksFrame = module.BlocksFrame;	
 	local offsetY = module.blockOffsetY;
-	if ( blocksFrame.currentBlock ) then
-		if ( blocksFrame.currentBlock.isHeader ) then
+	block:ClearAllPoints();	
+	if ( anchorBlock ) then
+		if ( anchorBlock.isHeader ) then
 			offsetY = module.fromHeaderOffsetY;
 		end
 		-- check if the block can fit
-		if ( blocksFrame.contentsHeight + block.height - offsetY > blocksFrame.maxHeight ) then
-			return false;
+		if ( checkFit and (blocksFrame.contentsHeight + block.height - offsetY > blocksFrame.maxHeight) ) then
+			return;
 		end
 		if ( block.isHeader ) then
-			offsetY = offsetY + blocksFrame.currentBlock.module.fromModuleOffsetY;
+			offsetY = offsetY + anchorBlock.module.fromModuleOffsetY;
 			block:SetPoint("LEFT", OBJECTIVE_TRACKER_HEADER_OFFSET_X, 0);
 		else
 			block:SetPoint("LEFT", module.blockOffsetX, 0);		
 		end
-		block:SetPoint("TOP", blocksFrame.currentBlock, "BOTTOM", 0, offsetY);
+		block:SetPoint("TOP", anchorBlock, "BOTTOM", 0, offsetY);
 	else
 		offsetY = 0;
 		-- check if the block can fit
-		if ( blocksFrame.contentsHeight + block.height > blocksFrame.maxHeight ) then
-			return false;
+		if ( checkFit and (blocksFrame.contentsHeight + block.height > blocksFrame.maxHeight) ) then
+			return;
 		end
 		-- if the blocks frame is a scrollframe, attach to its scrollchild
 		if ( block.isHeader ) then
@@ -796,6 +781,18 @@ local function InternalAddBlock(block)
 		else
 			block:SetPoint("TOPLEFT", blocksFrame.ScrollContents or blocksFrame, "TOPLEFT", module.blockOffsetX, offsetY);
 		end
+	end
+	return offsetY;
+end
+
+local function InternalAddBlock(block)
+	local module = block.module or DEFAULT_OBJECTIVE_TRACKER_MODULE;
+	local blocksFrame = module.BlocksFrame;
+	block.nextBlock = nil;
+
+	local offsetY = AnchorBlock(block, blocksFrame.currentBlock, true);
+	if ( not offsetY ) then
+		return false;
 	end
 
 	if ( not module.firstBlock and not block.isHeader ) then
@@ -811,7 +808,7 @@ local function InternalAddBlock(block)
 	return true;
 end
 
-function ObjectiveTracker_AddBlock(block)
+function ObjectiveTracker_AddBlock(block, forceAdd)
 	local header = block.module.Header;
 	local blockAdded = false;
 	-- if there's no header or it's been added, just add the block...
@@ -861,6 +858,30 @@ function ObjectiveTracker_CanFitBlock(block, header)
 	return (blocksFrame.contentsHeight + totalHeight) <= blocksFrame.maxHeight;
 end
 
+local function MoveBonusObjectivesBelowQuests()
+	-- don't have to do any moving if there are no bonus objective or quest blocks
+	if ( not BONUS_OBJECTIVE_TRACKER_MODULE.firstBlock or (not AUTO_QUEST_POPUP_TRACKER_MODULE.firstBlock and not QUEST_TRACKER_MODULE.firstBlock) ) then
+		return;
+	end
+
+	local otherHeader, otherModule;
+	if ( QUEST_TRACKER_MODULE.firstBlock ) then
+		otherHeader = QUEST_TRACKER_MODULE.Header;
+		otherModule = QUEST_TRACKER_MODULE;
+	else
+		otherHeader = AUTO_QUEST_POPUP_TRACKER_MODULE.Header;
+		otherModule = AUTO_QUEST_POPUP_TRACKER_MODULE;
+	end
+	BONUS_OBJECTIVE_TRACKER_MODULE.Header:ClearAllPoints();
+	otherHeader:ClearAllPoints();
+	AnchorBlock(BONUS_OBJECTIVE_TRACKER_MODULE.Header, otherModule.lastBlock);
+	AnchorBlock(otherHeader, nil);		-- not calling this function if in a scenario so Quest header should be at the very top
+	if ( ACHIEVEMENT_TRACKER_MODULE.firstBlock ) then
+		ACHIEVEMENT_TRACKER_MODULE.Header:ClearAllPoints();
+		AnchorBlock(ACHIEVEMENT_TRACKER_MODULE.Header, BONUS_OBJECTIVE_TRACKER_MODULE.lastBlock);
+	end
+end
+
 -- ***** SLIDING
 
 function ObjectiveTracker_SlideBlock(block, slideData)
@@ -883,6 +904,7 @@ function ObjectiveTracker_EndSlideBlock(block)
 			block:SetVerticalScroll(0);
 		end
 	end
+	block.slidingAction = nil;
 end
 
 function ObjectiveTracker_OnSlideBlockUpdate(block, elapsed)
@@ -893,7 +915,7 @@ function ObjectiveTracker_OnSlideBlockUpdate(block, elapsed)
 		return;
 	end
 	
-	height = floor(slideData.startHeight + (slideData.endHeight - slideData.startHeight) * (min(block.slideTime, slideData.duration) / slideData.duration));
+	local height = floor(slideData.startHeight + (slideData.endHeight - slideData.startHeight) * (min(block.slideTime, slideData.duration) / slideData.duration));
 	if ( height ~= block.slideHeight ) then
 		block.slideHeight = height;
 		block:SetHeight(height);
@@ -908,6 +930,19 @@ function ObjectiveTracker_OnSlideBlockUpdate(block, elapsed)
 		block:SetScript("OnUpdate", nil);
 		if ( slideData.onFinishFunc ) then
 			slideData.onFinishFunc(block);
+		end
+	end
+end
+
+function ObjectiveTracker_CancelSlideBlock(block)
+	block:SetScript("OnUpdate", nil);
+	local slideData = block.slideData;
+	if( slideData ) then
+		block:SetHeight(slideData.startHeight);
+		if ( slideData.scroll ) then
+			block:UpdateScrollChildRect();
+			-- scrolling means the bottom of the content comes in first or leaves last
+			block:SetVerticalScroll(0);
 		end
 	end
 end
@@ -992,6 +1027,10 @@ function ObjectiveTracker_Update(reason, id)
 				module:StaticReanchor();
 			end
 		end
+	end
+	
+	if ( not C_Scenario.IsInScenario() and BONUS_OBJECTIVE_TRACKER_MODULE.BlocksFrame.contentsHeight > 0) then
+		MoveBonusObjectivesBelowQuests();
 	end
 
 	-- hide unused headers

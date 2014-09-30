@@ -231,7 +231,7 @@
 			</Anchors>
 		</HighlightTexture>
 		<Scripts>
-			<OnClick function="GarrisonBuildingTab_OnClick"/>
+			<OnMouseDown function="GarrisonBuildingTab_OnMouseDown"/>
 		</Scripts>
 	</Button>
 	
@@ -283,7 +283,7 @@
 			<OnLoad>
 				self:RegisterForDrag("LeftButton");
 			</OnLoad>
-			<OnClick function="GarrisonBuildingListButton_OnClick"/>
+			<OnMouseDown function="GarrisonBuildingListButton_OnMouseDown"/>
 			<OnDragStart function="GarrisonBuildingListButton_OnDragStart"/>
 			<OnDragStop function="GarrisonBuildingListButton_OnDragStop"/>
 			<OnEnter function="GarrisonBuildingListButton_OnEnter"/>
@@ -504,14 +504,6 @@
 			<OnLeave function="GarrisonPlot_OnLeave"/>
 		</Scripts>
 	</Button>
-
-	<Button name="GarrisonBuildingFollowerButtonTemplate" inherits="GarrisonFollowerButtonTemplate" virtual="true">
-		<Scripts>
-			<OnClick function="GarrisonBuildingFollowerButton_OnClick"/>
-			<OnEnter function="GarrisonBuildingFollowerButton_OnEnter"/>
-			<OnLeave function="GarrisonBuildingFollowerButton_OnLeave"/>
-		</Scripts>
-	</Button>
 	
 	<Frame name="GarrisonBuildingFrame" inherits="GarrisonUITemplate" parent="UIParent" enableMouse="true" toplevel="true" hidden="true">
 		<Size x="1002" y="662"/>
@@ -553,78 +545,81 @@
 							<Anchor point="TOP" y="-10"/>
 						</Anchors>
 					</Button>
-					<Frame parentKey="MoneyFrame" inherits="ThinGoldEdgeTemplate">
-						<Size x="265" y="19"/>
+					<Frame parentKey="MaterialFrame" inherits="MaterialFrameTemplate">
+						<Size x="292" y="43"/>
 						<Anchors>
-							<Anchor point="BOTTOMRIGHT" x="-7" y="3"/>
+							<Anchor point="BOTTOM" relativePoint="BOTTOM" y="-4"/>
 						</Anchors>
-						<Layers>
-							<Layer level="ARTWORK">
-								<FontString parentKey="Materials" inherits="GameFontHighlight" justifyH="RIGHT">
-									<Size x="120" y="0"/>
-									<Anchors>
-										<Anchor point="RIGHT" x="-5"/>
-									</Anchors>
-								</FontString>
-							</Layer>
-						</Layers>
-					</Frame>
-					<Frame parentKey="Tooltip" inherits="TooltipBorderedFrameTemplate" hidden="true" frameStrata="HIGH">
-						<Size x="230" y="300"/>
-						<Anchors>
-							<Anchor point="LEFT" relativePoint="RIGHT" x="-3" y="-5"/>
-						</Anchors>
-						<Layers>
-							<Layer level="ARTWORK">
-								<FontString parentKey="Name" inherits="GameFontHighlightMedium" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" x="15" y="-15"/>
-									</Anchors>
-								</FontString>
-								<FontString parentKey="Rank1" inherits="GameFontNormal" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
-									</Anchors>
-								</FontString>
-								<FontString parentKey="Rank1Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Rank1" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
-									</Anchors>
-								</FontString>
-								
-								<FontString parentKey="Rank2" inherits="GameFontNormal" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Rank1Tooltip" relativePoint="BOTTOMLEFT" x="-10" y="-10"/>
-									</Anchors>
-								</FontString>
-								<FontString parentKey="Rank2Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Rank2" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
-									</Anchors>
-								</FontString>
-								
-								<FontString parentKey="Rank3" inherits="GameFontNormal" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Rank2Tooltip" relativePoint="BOTTOMLEFT" x="-10" y="-10"/>
-									</Anchors>
-								</FontString>
-								<FontString parentKey="Rank3Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
-									<Size x="190" y="0"/>
-									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.Rank3" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
-									</Anchors>
-								</FontString>
-							</Layer>
-						</Layers>
 					</Frame>
 				</Frames>
 			</Frame>
+	
+			<Frame parentKey="BuildingLevelTooltip" inherits="TooltipBorderedFrameTemplate" hidden="true" frameStrata="TOOLTIP" clampedToScreen="true">
+				<Size x="230" y="300"/>
+				<Layers>
+					<Layer level="ARTWORK">
+						<FontString parentKey="Name" inherits="GameFontHighlightMedium" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="15" y="-15"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="FollowerText" inherits="GameFontHighlight" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-5"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="Rank1" inherits="GameFontNormal" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.FollowerText" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="Rank1Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank1" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
+							</Anchors>
+						</FontString>
+						
+						<FontString parentKey="Rank2" inherits="GameFontNormal" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank1Tooltip" relativePoint="BOTTOMLEFT" x="-10" y="-10"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="Rank2Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank2" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
+							</Anchors>
+						</FontString>
+						
+						<FontString parentKey="Rank3" inherits="GameFontNormal" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank2Tooltip" relativePoint="BOTTOMLEFT" x="-10" y="-10"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="Rank3Tooltip" inherits="GameFontHighlight" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank3" relativePoint="BOTTOMLEFT" x="10" y="-5"/>
+							</Anchors>
+						</FontString>
+						
+						<FontString parentKey="UnlockText" inherits="GameFontHighlight" justifyH="LEFT">
+							<Size x="190" y="0"/>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.Rank3Tooltip" relativePoint="BOTTOMLEFT" x="-10" y="-10"/>
+							</Anchors>
+							<Color r="1.0" g="0.1" b="0.1" a="1"/>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+			
 			<Frame parentKey="FollowerList" inherits="GarrisonListTemplateHeader" name="$parentFollowers" hidden="true" frameStrata="HIGH">
 				<Size x="305" y="565"/>
 				<Anchors>
@@ -669,20 +664,20 @@
 				
 				<Animations>
 					<AnimationGroup parentKey="UpgradeAnim">
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="1"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="-1.0" duration="0.9" order="2"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="3"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="-1.0" duration="0.9" order="4"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="5"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="1"/>
+						<Alpha childKey="UpgradeGlow" change="-1.0" duration="0.9" order="2"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="3"/>
+						<Alpha childKey="UpgradeGlow" change="-1.0" duration="0.9" order="4"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="5"/>
+						<Scripts>
+							<OnPlay>
+								self:GetParent().UpgradeGlow:SetAlpha(0);
+							</OnPlay>
+							<OnFinished>
+								self:GetParent().UpgradeGlow:SetAlpha(1);
+							</OnFinished>
+						</Scripts>
 					</AnimationGroup>
-					<Scripts>
-						<OnPlay>
-							self:GetParent().UpgradeGlow:SetAlpha(0);
-						</OnPlay>
-						<OnFinished>
-							self:GetParent().UpgradeGlow:SetAlpha(1);
-						</OnFinished>
-					</Scripts>
 				</Animations>
 		
 				<Layers>
@@ -693,13 +688,13 @@
 							</Anchors>
 						</Texture>
 						<FontString parentKey="Title" inherits="GameFontNormalMed3" justifyH="LEFT">
-							<Size x="315" y="0"/>
+							<Size x="300" y="0"/>
 							<Anchors>
 								<Anchor point="TOPLEFT" x="221" y="-24"/>
 							</Anchors>
 						</FontString>
-						<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT">
-							<Size x="315" y="0"/>
+						<FontString parentKey="Description" inherits="GameFontNormalSmall" justifyH="LEFT">
+							<Size x="300" y="0"/>
 							<Anchors>
 								<Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
 							</Anchors>
@@ -707,7 +702,7 @@
 						</FontString>
 						<Texture parentKey="RankBadge" atlas="Garr_LevelBadge_1" useAtlasSize="true">
 							<Anchors>
-								<Anchor point="TOPRIGHT" x="-30" y="-25" />
+								<Anchor point="TOPRIGHT" x="-35" y="-20" />
 							</Anchors>
 						</Texture>
 						<FontString parentKey="RankLabel" inherits="GameFontHighlight" justifyH="CENTER" text="LEVEL">
@@ -728,7 +723,7 @@
 								<Anchor point="BOTTOM" relativeKey="$parent.Building" y="17"/>
 							</Anchors>
 						</Texture>
-						<Texture name="GarrisonBuildingUpgradeGlow" parentKey="UpgradeGlow" atlas="Garr_LevelBadgeGlow" useAtlasSize="true" hidden="true">
+						<Texture parentKey="UpgradeGlow" atlas="Garr_LevelBadgeGlow" useAtlasSize="true" hidden="true">
 							<Anchors>
 								<Anchor point="CENTER" relativeKey="$parent.RankBadge" />
 							</Anchors>
@@ -885,28 +880,33 @@
 					<Frame parentKey="UpgradeCostBar" hidden="false">
 						<Size x="80" y="22"/>
 						<Anchors>
-							<Anchor point="TOP" relativeKey="$parent.RankLabel" relativePoint="BOTTOM" y="-30"/>
+							<Anchor point="TOPRIGHT" relativeKey="$parent.RankLabel" relativePoint="BOTTOMRIGHT" x="11" y="-30"/>
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
-								<FontString parentKey="CostLabel" inherits="GameFontNormal" justifyH="LEFT" text="COSTS_LABEL">
+								<FontString parentKey="CostAmountMaterial" inherits="GameFontHighlight" justifyH="LEFT">
 									<Anchors>
-										<Anchor point="TOPLEFT"/>`
+										<Anchor point="TOPRIGHT"/>
 									</Anchors>
 								</FontString>
-								<FontString parentKey="CostAmount" inherits="GameFontHighlight" justifyH="LEFT">
+								<FontString parentKey="CostLabel" inherits="GameFontNormal" justifyH="LEFT" text="COSTS_LABEL">
 									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.CostLabel" relativePoint="TOPRIGHT" x="2" y="0"/>
+										<Anchor point="RIGHT" relativeKey="$parent.CostAmountMaterial" relativePoint="LEFT" x="-2" y="0"/>
+									</Anchors>
+								</FontString>
+								<FontString parentKey="CostAmountGold" inherits="GameFontHighlight" justifyH="LEFT">
+									<Anchors>
+										<Anchor point="TOPLEFT" relativeKey="$parent.CostAmountMaterial" relativePoint="BOTTOMLEFT" x="0" y="-3"/>
 									</Anchors>
 								</FontString>
 								<FontString parentKey="TimeLabel" inherits="GameFontNormal" text="TIME_LABEL">
 									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.CostLabel" relativePoint="BOTTOMLEFT" y="-5"/>
+										<Anchor point="TOPRIGHT" relativeKey="$parent.CostLabel" relativePoint="BOTTOMRIGHT" x="0" y="-18"/>
 									</Anchors>
 								</FontString>
 								<FontString parentKey="TimeAmount" inherits="GameFontHighlight">
 									<Anchors>
-										<Anchor point="LEFT" relativeKey="$parent.TimeLabel" relativePoint="RIGHT" x="2"/>
+										<Anchor point="LEFT" relativeKey="$parent.TimeLabel" relativePoint="RIGHT" x="2" y="0"/>
 									</Anchors>
 								</FontString>
 							</Layer>
@@ -948,7 +948,7 @@
 					</Frame>
 					<Button parentKey="FollowerPortrait" inherits="GarrisonFollowerPortraitTemplate">
 						<Anchors>
-							<Anchor point="BOTTOMLEFT" x="221" y="20"/>
+							<Anchor point="BOTTOMLEFT" x="221" y="10"/>
 						</Anchors>
 						<Layers>
 							<Layer level="OVERLAY">
@@ -993,6 +993,7 @@
 										self.texture:SetPoint("TOPLEFT", 0, 0);
 									</OnMouseUp>
 									<OnClick>
+										PlaySound("UI_Garrison_CommandTable_UnassignFollower");
 										C_Garrison.RemoveFollowerFromBuilding(GarrisonBuildingFrame.InfoBox.ID);
 									</OnClick>
 								</Scripts>
@@ -1006,7 +1007,7 @@
 					<Button parentKey="AddFollowerButton" hidden="true">
 						<Size x="52" y="60"/>
 						<Anchors>
-							<Anchor point="BOTTOMLEFT" x="221" y="20"/>
+							<Anchor point="BOTTOMLEFT" x="221" y="10"/>
 						</Anchors>
 						<Layers>
 							<Layer level="BORDER" textureSubLevel="0">
@@ -1075,20 +1076,20 @@
 				
 				<Animations>
 					<AnimationGroup parentKey="UpgradeAnim">
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="1"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="-1.0" duration="0.9" order="2"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="3"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="-1.0" duration="0.9" order="4"/>
-						<Alpha target="GarrisonBuildingUpgradeGlow" change="1.0" duration="0.9" order="5"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="1"/>
+						<Alpha childKey="UpgradeGlow" change="-1.0" duration="0.9" order="2"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="3"/>
+						<Alpha childKey="UpgradeGlow" change="-1.0" duration="0.9" order="4"/>
+						<Alpha childKey="UpgradeGlow" change="1.0" duration="0.9" order="5"/>
+						<Scripts>
+							<OnPlay>
+								self:GetParent().UpgradeGlow:SetAlpha(0);
+							</OnPlay>
+							<OnFinished>
+								self:GetParent().UpgradeGlow:SetAlpha(1);
+							</OnFinished>
+						</Scripts>
 					</AnimationGroup>
-					<Scripts>
-						<OnPlay>
-							self:GetParent().UpgradeGlow:SetAlpha(0);
-						</OnPlay>
-						<OnFinished>
-							self:GetParent().UpgradeGlow:SetAlpha(1);
-						</OnFinished>
-					</Scripts>
 				</Animations>
 		
 				<Layers>
@@ -1099,20 +1100,20 @@
 							</Anchors>
 						</Texture>
 						<FontString parentKey="Title" inherits="GameFontNormalMed3" justifyH="LEFT">
-							<Size x="315" y="0"/>
+							<Size x="300" y="0"/>
 							<Anchors>
 								<Anchor point="TOPLEFT" x="221" y="-24"/>
 							</Anchors>
 						</FontString>
 						<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" text="GARRISON_TOWN_HALL_EXPLANATION">
-							<Size x="315" y="0"/>
+							<Size x="300" y="0"/>
 							<Anchors>
 								<Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
 							</Anchors>
 						</FontString>
 						<Texture parentKey="RankBadge" atlas="Garr_LevelBadge_1" useAtlasSize="true">
 							<Anchors>
-								<Anchor point="TOPRIGHT" x="-30" y="-25" />
+								<Anchor point="TOPRIGHT" x="-35" y="-20" />
 							</Anchors>
 						</Texture>
 						<FontString parentKey="RankLabel" inherits="GameFontHighlight" justifyH="CENTER" text="LEVEL">
@@ -1123,7 +1124,7 @@
 						</FontString>
 					</Layer>
 					<Layer level="ARTWORK" textureSubLevel="1">
-						<Texture name="GarrisonBuildingUpgradeGlow" parentKey="UpgradeGlow" atlas="Garr_LevelBadgeGlow" useAtlasSize="true" hidden="true">
+						<Texture parentKey="UpgradeGlow" atlas="Garr_LevelBadgeGlow" useAtlasSize="true" hidden="true">
 							<Anchors>
 								<Anchor point="CENTER" relativeKey="$parent.RankBadge" />
 							</Anchors>
@@ -1152,18 +1153,23 @@
 					<Frame parentKey="UpgradeCostBar" hidden="false">
 						<Size x="80" y="22"/>
 						<Anchors>
-							<Anchor point="TOP" relativeKey="$parent.RankLabel" relativePoint="BOTTOM" y="-30"/>
+							<Anchor point="TOPRIGHT" relativeKey="$parent.RankLabel" relativePoint="BOTTOMRIGHT" x="11" y="-30"/>
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
-								<FontString parentKey="CostLabel" inherits="GameFontNormal" justifyH="LEFT" text="COSTS_LABEL">
+								<FontString parentKey="CostAmountMaterial" inherits="GameFontHighlight" justifyH="LEFT">
 									<Anchors>
-										<Anchor point="TOPLEFT"/>`
+										<Anchor point="TOPRIGHT"/>
 									</Anchors>
 								</FontString>
-								<FontString parentKey="CostAmount" inherits="GameFontHighlight" justifyH="LEFT">
+								<FontString parentKey="CostLabel" inherits="GameFontNormal" justifyH="LEFT" text="COSTS_LABEL">
 									<Anchors>
-										<Anchor point="TOPLEFT" relativeKey="$parent.CostLabel" relativePoint="TOPRIGHT" x="2" y="0"/>
+										<Anchor point="RIGHT" relativeKey="$parent.CostAmountMaterial" relativePoint="LEFT" x="-2" y="0"/>
+									</Anchors>
+								</FontString>
+								<FontString parentKey="CostAmountGold" inherits="GameFontHighlight" justifyH="LEFT" text="100">
+									<Anchors>
+										<Anchor point="TOPLEFT" relativeKey="$parent.CostAmountMaterial" relativePoint="BOTTOMLEFT" x="0" y="-3"/>
 									</Anchors>
 								</FontString>
 							</Layer>
@@ -1272,12 +1278,8 @@
 							</Layer>
 						</Layers>
 						<Scripts>
-							<OnEnter>
-								self.BuildingHighlight:Show();
-							</OnEnter>
-							<OnLeave>
-								self.BuildingHighlight:Hide();
-							</OnLeave>
+							<OnEnter function="GarrisonTownHall_OnEnter"/>
+							<OnLeave function="GarrisonTownHall_OnLeave"/>
 							<OnClick function="GarrisonTownHall_OnClick"/>
 						</Scripts>
 						<Animations>
@@ -1333,12 +1335,20 @@
 								<Anchor point="TOPLEFT" x="81" y="-34"/>
 							</Anchors>
 						</FontString>
-						<FontString parentKey="Cost" inherits="GameFontHighlight">
+						<FontString parentKey="MaterialCost" inherits="GameFontHighlight">
 							<Shadow>
 								<Offset x="1" y="-1"/>
 							</Shadow>
 							<Anchors>
 								<Anchor point="LEFT" relativeKey="$parent.CostLabel" relativePoint="RIGHT" x="5"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="GoldCost" inherits="GameFontHighlight">
+							<Shadow>
+								<Offset x="1" y="-1"/>
+							</Shadow>
+							<Anchors>
+								<Anchor point="TOPLEFT" relativeKey="$parent.MaterialCost" relativePoint="BOTTOMLEFT" x="0" y="-3"/>
 							</Anchors>
 						</FontString>
 						<FontString parentKey="TimeLabel" inherits="GameFontNormal" text="TIME_LABEL">
@@ -1366,7 +1376,7 @@
 							<Anchor point="BOTTOMRIGHT" x="-45" y="23"/>
 						</Anchors>
 						<Scripts>
-							<OnClick function="GarrisonBuildingFrame_ClearConfirmation"/>
+							<OnClick function="GarrisonBuildingFrame_CancelConfirmation"/>
 						</Scripts>
 					</Button>
 					<Button parentKey="BuildButton" inherits="UIPanelButtonTemplate" text="GARRISON_BUILD">
@@ -1415,21 +1425,45 @@
 						</Scripts>
 					</Button>
 				</Frames>
+				<Scripts>
+					<OnShow>
+						GarrisonBuildingFrame.Cover:Show();
+						self:SetFrameLevel(GarrisonBuildingFrame.Cover:GetFrameLevel()+1);
+					</OnShow>
+					<OnHide>
+						GarrisonBuildingFrame.Cover:Hide();
+					</OnHide>
+				</Scripts>
+			</Frame>
+			<Frame parentKey="Cover" setAllPoints="true" enableMouse="true" hidden="true" frameStrata="HIGH">
+				<Anchors>
+					<Anchor point="TOPLEFT" x="0" y="-20" />
+					<Anchor point="BOTTOMRIGHT" x="0" y="0" />
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Texture" setAllPoints="true">
+							<Color r="0" g="0" b="0" a="0" />
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnShow>
+						self:SetFrameLevel(self:GetParent():GetFrameLevel()+3);
+					</OnShow>
+				</Scripts>
 			</Frame>
 		</Frames>
 		<Scripts>
 			<OnShow function="GarrisonBuildingFrame_OnShow"/>
 			<OnLoad function="GarrisonBuildingFrame_OnLoad"/>
 			<OnEvent function="GarrisonBuildingFrame_OnEvent"/>
-			<OnHide>
-				C_Garrison.CloseArchitect();
-				HelpPlate_Hide();
-			</OnHide>
+			<OnHide function="GarrisonBuildingFrame_OnHide"/>
 		</Scripts>
 	</Frame>
 	
 	
-	<Frame name="GarrisonBuildingPlacer" parent="UIParent" frameStrata="HIGH" hidden="true">
+	<Frame name="GarrisonBuildingPlacer" parent="UIParent" frameStrata="DIALOG" hidden="true">
 		<Size x="108" y="70"/>
 		<Layers>
 			<Layer level="ARTWORK">
@@ -1457,7 +1491,7 @@
 		</Layers>
 	</Frame>
 	
-	<Button name="GarrisonBuildingPlacerFrame" parent="UIParent" frameStrata="HIGH" setAllPoints="true" hidden="true">
+	<Button name="GarrisonBuildingPlacerFrame" parent="UIParent" frameStrata="DIALOG" setAllPoints="true" hidden="true">
 		<Scripts>
 			<OnClick function="GarrisonBuildingPlacerFrame_OnClick"/>
 		</Scripts>

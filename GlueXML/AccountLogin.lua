@@ -39,14 +39,17 @@ function AccountLogin_OnShow(self)
 
 	-- special code for BlizzCon
 	if (IsBlizzCon()) then
-		DefaultServerLogin(GetCVar("accountName"), GetCVar("password"));
+		AccountLoginPasswordEdit:SetText(GetCVar("password"));
+		DefaultServerLogin(GetCVar("accountName"), AccountLoginPasswordEdit);
 		AccountLoginUI:Hide();
 		return;
 	end
-
+	
+	local displayedExpansionLevel = GetClientDisplayExpansionLevel();
+	
 	self:SetSequence(0);
-	PlayGlueMusic(EXPANSION_GLUE_MUSIC[GetClientDisplayExpansionLevel()]);
-	PlayGlueAmbience(GlueAmbienceTracks["DARKPORTAL"], 4.0);
+	PlayGlueMusic(EXPANSION_GLUE_MUSIC[displayedExpansionLevel]);
+	PlayGlueAmbience(EXPANSION_GLUE_AMBIENCE[displayedExpansionLevel], 4.0);
 
 	-- Try to show the EULA or the TOS
 	AccountLogin_ShowUserAgreements();
@@ -237,7 +240,7 @@ end
 
 function AccountLogin_Login()
 	PlaySound("gsLogin");
-	DefaultServerLogin(AccountLoginAccountEdit:GetText(), AccountLoginPasswordEdit:GetText());
+	DefaultServerLogin(AccountLoginAccountEdit:GetText(), AccountLoginPasswordEdit);
 	AccountLoginPasswordEdit:SetText("");
 
 	if ( AccountLoginSaveAccountName:GetChecked() ) then
@@ -948,7 +951,7 @@ function CinematicsButton_Update(self)
 		self.isLocal = false;
 		self.isPlayable = isPlayable;
 		
-		if (inProgress or (downloaded/total) > 0.1) then
+		if (inProgress or (total > 0 and ((downloaded/total) > 0.1))) then
 			self.StatusBar:SetMinMaxValues(0, total);
 			self.StatusBar:SetValue(downloaded);
 			self.StatusBar:Show();

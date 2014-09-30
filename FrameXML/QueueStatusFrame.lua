@@ -28,8 +28,20 @@ function QueueStatusMinimapButton_OnClick(self, button)
 				ToggleWorldStateScoreFrame();
 			end
 		elseif ( lfgListActiveEntry ) then
-			LFGListUtil_OpenBestWindow();
+			LFGListUtil_OpenBestWindow(true);
 		else
+			--See if we have any active LFGList applications
+			local apps = C_LFGList.GetApplications();
+			for i=1, #apps do
+				local _, appStatus = C_LFGList.GetApplicationInfo(apps[i]);
+				if ( appStatus == "applied" or appStatus == "invited" ) then
+					--We want to open to the LFGList screen
+					LFGListUtil_OpenBestWindow(true);
+					return;
+				end
+			end
+
+			--Just show the dropdown
 			QueueStatusDropDown_Show(self.DropDown, self:GetName());
 		end
 	end
@@ -53,7 +65,12 @@ function QueueStatusMinimapButton_UpdateGlow(self)
 		end
 	end
 
-	self.Eye.Highlight:SetShown(enabled);
+	self.Highlight:SetShown(enabled);
+	if ( enabled ) then
+		self.EyeHighlightAnim:Play();
+	else
+		self.EyeHighlightAnim:Stop();
+	end
 end
 
 ----------------------------------------------
@@ -151,18 +168,23 @@ function QueueStatusFrame_Update(self)
 		entry:Show();
 		totalHeight = totalHeight + entry:GetHeight();
 		nextEntry = nextEntry + 1;
+		animateEye = true;
 	end
 
 	--Try LFGList applications
 	local apps = C_LFGList.GetApplications();
 	for i=1, #apps do
 		local _, appStatus = C_LFGList.GetApplicationInfo(apps[i]);
-		if ( appStatus == "applied" ) then
+		if ( appStatus == "applied" or appStatus == "invited" ) then
 			local entry = QueueStatusFrame_GetEntry(self, nextEntry);
 			QueueStatusEntry_SetUpLFGListApplication(entry, apps[i]);
 			entry:Show();
 			totalHeight = totalHeight + entry:GetHeight();
 			nextEntry = nextEntry + 1;
+
+			if ( appStatus == "applied" ) then
+				animateEye = true;
+			end
 		end
 	end
 
@@ -723,7 +745,7 @@ end
 
 function QueueStatusDropDown_AddBattlefieldButtons(info, idx)
 	wipe(info);
-	local status, mapName, teamSize, registeredMatch = GetBattlefieldStatus(idx);
+	local status, mapName, teamSize, registeredMatch,_,_,_,_, asGroup = GetBattlefieldStatus(idx);
 
 	local name = mapName;
 	if ( status == "active" ) then
@@ -743,7 +765,7 @@ function QueueStatusDropDown_AddBattlefieldButtons(info, idx)
 		info.func = wrapFunc(AcceptBattlefieldPort);
 		info.arg1 = idx;
 		info.arg2 = false;
-		info.disabled = registeredMatch and IsInGroup() and not UnitIsGroupLeader("player");
+		info.disabled = registeredMatch and IsInGroup() and not UnitIsGroupLeader("player") and asGroup;
 		UIDropDownMenu_AddButton(info);
 	elseif ( status == "locked" ) then
 		info.text = LEAVE_BATTLEGROUND;
@@ -885,7 +907,7 @@ function QueueStatusDropDown_AddLFGButtons(info, category)
 			info.text = LEAVE_QUEUE;
 			info.func = wrapFunc(RejectProposal);
 			info.arg1 = category;
-			info.disabled = (submode == "unempowered");
+			info.disabled = false;
 			UIDropDownMenu_AddButton(info);
 		end
 	end

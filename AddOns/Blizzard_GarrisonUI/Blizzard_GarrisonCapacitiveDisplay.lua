@@ -18,6 +18,11 @@ end
 
 local shipmentUpdater;
 
+function GarrisonCapacitiveDisplayFrame_TimerUpdate()
+	local self = GarrisonCapacitiveDisplayFrame;
+	GarrisonCapacitiveDisplayFrame_Update(self, true, self.maxShipments, self.plotID);
+end
+
 function GarrisonCapacitiveDisplayFrame_Update(self, success, maxShipments, plotID)
 	if (success ~= 0) then
 		self.maxShipments = maxShipments;
@@ -27,6 +32,10 @@ function GarrisonCapacitiveDisplayFrame_Update(self, success, maxShipments, plot
 
 		local numPending = C_Garrison.GetNumPendingShipments();
 		local display = self.CapacitiveDisplay;
+
+		if (not numPending) then
+			return;
+		end
 
 		local available = maxShipments - numPending;
 
@@ -79,9 +88,53 @@ function GarrisonCapacitiveDisplayFrame_Update(self, success, maxShipments, plot
 				reagent.Count:SetText(quantity.."\n/"..needed);
 			end
 	 	   	reagent.itemId = itemID;
-
+	 	   	reagent.currencyID = nil;
 	 	   	reagent:Show();
 	    end
+
+	    local currencyID, currencyNeeded = C_Garrison.GetShipmentReagentCurrencyInfo();
+
+	    if (currencyID and currencyNeeded) then
+	    	local i = C_Garrison.GetNumShipmentReagents() + 1;
+
+	    	local reagent = reagents[i];
+	    	if (not reagent) then
+	    		reagent = CreateFrame("Button", nil, display, "GarrisonCapacitiveItemButtonTemplate");
+	    		reagent:SetID(i);
+	    		reagent:SetPoint("TOP", reagents[i-1], "BOTTOM", 0, -6);
+	    	end
+
+	    	local name, quantity, texture, _, _, _, _, quality = GetCurrencyInfo(currencyID);
+
+	    	-- If we don't have a name here the data is not set up correctly, but this prevents lua errors later.
+	    	if (name) then
+				reagent.Icon:SetTexture(texture);	    	
+				reagent.Name:SetText(name);
+				reagent.Name:SetTextColor(ITEM_QUALITY_COLORS[quality].r, ITEM_QUALITY_COLORS[quality].g, ITEM_QUALITY_COLORS[quality].b);
+				-- Grayout items
+				if ( quantity < currencyNeeded ) then
+					reagent.Icon:SetVertexColor(0.5, 0.5, 0.5);
+					reagent.Name:SetTextColor(GRAY_FONT_COLOR.r, GRAY_FONT_COLOR.g, GRAY_FONT_COLOR.b);
+					hasReagents = false;
+				else
+					reagent.Icon:SetVertexColor(1.0, 1.0, 1.0);
+					reagent.Name:SetTextColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
+				end
+				if ( quantity >= 100 ) then
+					quantity = "*";
+				end
+				reagent.Count:SetText(quantity.." /"..currencyNeeded);
+				--fix text overflow when the reagent count is too high
+				if (math.floor(reagent.Count:GetStringWidth()) > math.floor(reagent.Icon:GetWidth() + .5)) then 
+				--round count width down because the leftmost number can overflow slightly without looking bad
+				--round icon width because it should always be an int, but sometimes it's a slightly off float
+					reagent.Count:SetText(quantity.."\n/"..currencyNeeded);
+				end
+		 	   	reagent.itemId = nil;
+		 	   	reagent.currencyID = currencyID;
+		 	   	reagent:Show();
+		 	end
+	 	end
 
 	    local name, texture, quality, itemID, duration = C_Garrison.GetShipmentItemInfo();
 
@@ -98,7 +151,7 @@ function GarrisonCapacitiveDisplayFrame_Update(self, success, maxShipments, plot
 		local _, buildingName = C_Garrison.GetOwnedBuildingInfoAbbrev(self.plotID);
 
 		self.TitleText:SetText(buildingName);
-		self.StartWorkOrderButton:SetEnabled(hasReagents);
+		self.StartWorkOrderButton:SetEnabled(hasReagents and available > 0);
 		
 		if ( UnitExists("npc") ) then
 			SetPortraitTexture(self.portrait, "npc");
@@ -113,7 +166,26 @@ function GarrisonCapacitiveDisplayFrame_Update(self, success, maxShipments, plot
 		display.Description:SetText(description);
 
 		display.ShipmentIconFrame.ShipmentName:SetText(name);
-		display.ShipmentIconFrame.ShipmentsAvailable:SetText(CAPACITANCE_SHIPMENT_COUNT:format(available, maxShipments));
+		if (available > 0) then
+			if (shipmentUpdater) then
+				shipmentUpdater:Cancel();
+				shipmentUpdater = nil;
+			end
+			display.ShipmentIconFrame.ShipmentsAvailable:SetText(CAPACITANCE_SHIPMENT_COUNT:format(available, maxShipments));
+		else
+			local timeRemaining = select(6,C_Garrison.GetPendingShipmentInfo(1));
+			if (timeRemaining ~= 0) then
+				if (not shipmentUpdater) then
+					shipmentUpdater = C_Timer.NewTicker(1, GarrisonCapacitiveDisplayFrame_TimerUpdate);
+				end
+			end
+			if (timeRemaining == 0) then
+				display.ShipmentIconFrame.ShipmentsAvailable:SetText(GREEN_FONT_COLOR_CODE..CAPACITANCE_SHIPMENT_READY..FONT_COLOR_CODE_CLOSE);
+			else
+				display.ShipmentIconFrame.ShipmentsAvailable:SetText(RED_FONT_COLOR_CODE..CAPACITANCE_SHIPMENT_COOLDOWN:format(SecondsToTime(timeRemaining, false, true, 1))..FONT_COLOR_CODE_CLOSE);
+			end
+		end
+
 		display.ShipmentIconFrame.Icon:SetTexture(texture);
 		display.ShipmentIconFrame.itemId = itemID;
 
@@ -152,10 +224,20 @@ function GarrisonCapacitiveDisplayFrame_OnEvent(self, event, ...)
 	end
 end
 
+function GarrisonCapacitiveDisplayFrame_OnShow(self)
+	PlaySound("UI_Garrison_Shipments_Window_Open");
+end
+
 function GarrisonCapacitiveDisplayFrame_OnHide(self)
+	if (shipmentUpdater) then
+		shipmentUpdater:Cancel();
+		shipmentUpdater = nil;
+	end
 	C_Garrison.CloseTradeskillCrafter();
+	PlaySound("UI_Garrison_Shipments_Window_Close");
 end
 
 function GarrisonCapacitiveStartWorkOrder_OnClick(self)
 	C_Garrison.RequestShipmentCreation();
+	PlaySound("UI_Garrison_Start_Work_Order");
 end

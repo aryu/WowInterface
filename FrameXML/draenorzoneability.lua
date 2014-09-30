@@ -23,19 +23,11 @@ DRAENOR_ZONE_FACTION_SPECIFIC_SPELLS = {
 	[161332] = PLAYER_FACTION_GROUP[0],
 };
 
--- This list will be name -> Texture for later use, since we do our comparisons based on names
-DRAENOR_ZONE_SPELL_ABILITY_TEXTURE_CACHE = {
-
-};
-
-DRAENOR_ZONE_NAME_TO_SPELL_ID_CACHE = {
-	
-};
-
 function DraenorZoneAbilityFrame_OnLoad(self)
 	self:RegisterUnitEvent("UNIT_AURA", "player");
 	self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
 	self:RegisterEvent("SPELL_UPDATE_USABLE");
+	self:RegisterEvent("SPELL_UPDATE_CHARGES");
 	self:RegisterEvent("SPELLS_CHANGED");
 	self:RegisterEvent("ACTIONBAR_SLOT_CHANGED");
 
@@ -47,15 +39,6 @@ function DraenorZoneAbilityFrame_OnEvent(self, event)
 	if (event == "SPELLS_CHANGED") then
 		if (not self.baseName) then
 			self.baseName = GetSpellInfo(DraenorZoneAbilitySpellID);
-			if (self.baseName) then
-				for spellID, path in pairs(DRAENOR_ZONE_SPELL_ABILITY_TEXTURES_BASE) do
-					if (not DRAENOR_ZONE_FACTION_SPECIFIC_SPELLS[spellID] or DRAENOR_ZONE_FACTION_SPECIFIC_SPELLS[spellID] == UnitFactionGroup("player")) then
-						local name = GetSpellInfo(spellID);
-						DRAENOR_ZONE_SPELL_ABILITY_TEXTURE_CACHE[name] = path;
-						DRAENOR_ZONE_NAME_TO_SPELL_ID_CACHE[name] = spellID;
-					end
-				end
-			end
 		end
 	end
 
@@ -84,7 +67,6 @@ function DraenorZoneAbilityFrame_OnEvent(self, event)
 		if (not self.CurrentTexture) then
 			self.CurrentTexture = select(3, GetSpellInfo(self.baseName));
 		end
-		DraenorZoneAbilityButtonAlert:Hide();
 		self:Hide();
 	end
 
@@ -98,27 +80,42 @@ function DraenorZoneAbilityFrame_OnShow(self)
 	DraenorZoneAbilityFrame_Update(self);
 end
 
+function DraenorZoneAbilityFrame_OnHide(self)
+	DraenorZoneAbilityButtonAlert:Hide();
+end
+
 function DraenorZoneAbilityFrame_Update(self)
 	if (not self.baseName) then
 		return;
 	end
-
-	local name, _, tex = GetSpellInfo(self.baseName);
+	local name, _, tex, _, _, _, spellID = GetSpellInfo(self.baseName);
 
 	self.CurrentTexture = tex;
 	self.CurrentSpell = name;
 
-	self.SpellButton.Style:SetTexture(DRAENOR_ZONE_SPELL_ABILITY_TEXTURE_CACHE[name]);
+	self.SpellButton.Style:SetTexture(DRAENOR_ZONE_SPELL_ABILITY_TEXTURES_BASE[spellID]);
 	self.SpellButton.Icon:SetTexture(tex);
 
-	local start, duration, enable = GetSpellCooldown(name);
+	local charges, maxCharges, chargeStart, chargeDuration = GetSpellCharges(spellID);
 
-	if (start) then
+	local usesCharges = false;
+	if (maxCharges and maxCharges > 1) then
+		self.SpellButton.Count:SetText(charges);
+		usesCharges = true;
+	else
+		self.SpellButton.Count:SetText("");
+	end
+
+	local start, duration, enable = GetSpellCooldown(name);
+	
+	if (usesCharges and charges < maxCharges) then
+		CooldownFrame_SetTimer(self.SpellButton.Cooldown, chargeStart, chargeDuration, enable, charges, maxCharges);
+	elseif (start) then
 		CooldownFrame_SetTimer(self.SpellButton.Cooldown, start, duration, enable);
 	end
-		
+
 	self.SpellButton.spellName = self.CurrentSpell;
-	self.SpellButton.currentSpellID = DRAENOR_ZONE_NAME_TO_SPELL_ID_CACHE[name];
+	self.SpellButton.currentSpellID = spellID;
 end
 
 function HasDraenorZoneSpellOnBar(self)

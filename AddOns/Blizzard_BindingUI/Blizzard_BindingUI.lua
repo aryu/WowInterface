@@ -44,6 +44,18 @@ StaticPopupDialogs["CONFIRM_LOSE_BINDING_CHANGES"] = {
 	showAlert = 1,
 };
 
+StaticPopupDialogs["CONFIRM_RESET_TO_DEFAULT_KEYBINDINGS"] = {
+	text = CONFIRM_RESET_KEYBINDINGS,
+	button1 = OKAY,
+	button2 = CANCEL,
+	OnAccept = function(self)
+		KeyBindingFrame_ResetBindingsToDefault();
+	end,
+	timeout = 0,
+	whileDead = 1,
+	showAlert = 1
+};
+
 function KeyBindingFrame_OnLoad(self)
 	self:RegisterForClicks("AnyUp");
 	KeyBindingFrame.scrollOffset = 0;
@@ -232,7 +244,7 @@ function KeyBindingFrame_Update()
 					keyBindingButton2:SetAlpha(0.8);
 				end
 				-- Set description
-				keyBindingDescription:SetText(_G["BINDING_NAME_"..commandName]);
+				keyBindingDescription:SetText(GetBindingName(commandName));
 				
 				keyBindingRow:Show();
 			end
@@ -261,7 +273,7 @@ function KeyBindingFrame_UnbindKey(keyPressed)
 		local key1, key2 = GetBindingKey(oldAction, KeyBindingFrame.mode);
 		if ( (not key1 or key1 == keyPressed) and (not key2 or key2 == keyPressed) ) then
 			--Error message
-			KeyBindingFrame.outputText:SetFormattedText(KEY_UNBOUND_ERROR, _G["BINDING_NAME_"..oldAction]);
+			KeyBindingFrame.outputText:SetFormattedText(KEY_UNBOUND_ERROR, GetBindingName(oldAction));
 		end
 	end
 	SetBinding(keyPressed, nil, KeyBindingFrame.mode);
@@ -481,7 +493,7 @@ function KeyBindingButton_OnClick(self, button)
 				KeyBindingFrame.buttonPressed = self;
 				KeyBindingFrame_SetSelected(self.commandName, self);
 				KeyBindingFrame.keyID = self:GetID();
-				KeyBindingFrame.outputText:SetFormattedText(BIND_KEY_TO_COMMAND, _G["BINDING_NAME_"..self.commandName]);
+				KeyBindingFrame.outputText:SetFormattedText(BIND_KEY_TO_COMMAND, GetBindingName(self.commandName));
 			end
 			KeyBindingFrame_Update();
 			return;
@@ -494,7 +506,7 @@ function KeyBindingButton_OnClick(self, button)
 		KeyBindingFrame.buttonPressed = self;
 		KeyBindingFrame_SetSelected(self.commandName, self);
 		KeyBindingFrame.keyID = self:GetID();
-		KeyBindingFrame.outputText:SetFormattedText(BIND_KEY_TO_COMMAND, _G["BINDING_NAME_"..self.commandName]);
+		KeyBindingFrame.outputText:SetFormattedText(BIND_KEY_TO_COMMAND, GetBindingName(self.commandName));
 		KeyBindingFrame_Update();
 	end
 	KeyBindingFrame_UpdateUnbindKey();
@@ -508,6 +520,7 @@ function KeybindingsCategoryListButton_OnClick(self, button)
 	KeyBindingFrame.cntCategory = self.element.category;
 	KeyBindingFrame_SetSelected(nil);
 	KeyBindingFrame.outputText:SetText("");
+	KeyBindingFrameScrollFrame.ScrollBar:SetValue(0);
 	KeyBindingFrame_Update();
 end
 
@@ -593,9 +606,22 @@ function CancelButton_OnClick(self)
 end
 
 function DefaultsButton_OnClick(self)
+	StaticPopup_Show("CONFIRM_RESET_TO_DEFAULT_KEYBINDINGS");
+end
+
+function KeyBindingFrame_ResetBindingsToDefault()
 	PlaySound("igMainMenuOptionCheckBoxOn");
 	LoadBindings(DEFAULT_BINDINGS);
 	KeyBindingFrame.outputText:SetText("");
 	KeyBindingFrame_SetSelected(nil);
 	KeyBindingFrame_Update();
+end
+
+function GetBindingName(binding)
+	local bindingName = _G["BINDING_NAME_"..binding];
+	if ( bindingName ) then
+		return bindingName;
+	end
+	
+	return binding;
 end

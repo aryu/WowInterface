@@ -1600,6 +1600,21 @@ SecureCmdList["DISMISSBATTLEPET"] = function(msg)
 	end
 end
 
+SecureCmdList["PET_DISMISS"] = function(msg)
+	if ( PetCanBeAbandoned() ) then
+		CastSpellByID(HUNTER_DISMISS_PET);
+	else
+		PetDismiss();
+	end
+end
+
+SecureCmdList["USE_TOY"] = function(msg)
+	local toyName = SecureCmdOptionParse(msg);
+	if ( toyName and toyName ~= "" ) then
+		UseToyByName(toyName)
+	end
+end
+
 -- Pre-populate the secure command hash table
 for index, value in pairs(SecureCmdList) do
 	local i = 1;
@@ -2184,10 +2199,6 @@ SlashCmdList["DUNGEONS"] = function(msg)
 	ToggleLFDParentFrame();
 end
 
-SlashCmdList["RAIDBROWSER"] = function(msg)
-	ToggleRaidBrowser();
-end
-
 SlashCmdList["BENCHMARK"] = function(msg)
 	SetTaxiBenchmarkMode(ValueToBoolean(msg), true);
 end
@@ -2342,9 +2353,9 @@ end
 
 
 SlashCmdList["WARGAME"] = function(msg)
-	local area, isTournamentMode = strmatch(msg, "^([^%s]+)%s*([^%s]*)");
-	if (area == "" or area == "nil" or area == "0") then area = nil end 
-	StartWarGame("target", area, ValueToBoolean(isTournamentMode) );
+	-- Parameters are (playername, area, isTournamentMode). Since the player name can be multiple words,
+	-- we pass in theses parameters as a whitespace delimited string and let the C side tokenize it
+	StartWarGameByName(msg);
 end
 
 SlashCmdList["SPECTATOR_WARGAME"] = function(msg)
@@ -2889,7 +2900,12 @@ end
 
 function ChatFrame_MessageEventHandler(self, event, ...)
 	if ( strsub(event, 1, 8) == "CHAT_MSG" ) then
-		local arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14 = ...;
+		local arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16 = ...;
+		if (arg16) then
+			-- hiding sender in letterbox: do NOT even show in chat window (only shows in cinematic frame)
+			return true;
+		end
+
 		local type = strsub(event, 10);
 		local info = ChatTypeInfo[type];
 		
@@ -3057,6 +3073,8 @@ function ChatFrame_MessageEventHandler(self, event, ...)
 		elseif ( type == "BN_CONVERSATION_LIST" ) then
 			local channelLink = format(CHAT_BN_CONVERSATION_GET_LINK, arg8, MAX_WOW_CHAT_CHANNELS + arg8);
 			local message = format(CHAT_BN_CONVERSATION_LIST, channelLink, arg1);
+			local accessID = ChatHistory_GetAccessID(Chat_GetChatCategory(type), arg8);
+			local typeID = ChatHistory_GetAccessID(infoType, arg8, arg12);
 			self:AddMessage(message, info.r, info.g, info.b, info.id, false, accessID, typeID);
 		elseif ( type == "BN_INLINE_TOAST_ALERT" ) then	
 			if ( arg1 == "FRIEND_OFFLINE" and not BNet_ShouldProcessOfflineEvents() ) then
@@ -4521,7 +4539,7 @@ function ChatMenu_Yell(self)
 end
 
 function ChatMenu_Whisper(self)
-	local editBox = ChatFrame_OpenChat(SLASH_SMART_WHISPER1.." ", chatFrame);
+	local editBox = ChatFrame_OpenChat(SLASH_SMART_WHISPER1.." ");
 	editBox:SetText(SLASH_SMART_WHISPER1.." "..editBox:GetText());
 end
 

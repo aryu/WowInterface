@@ -250,7 +250,10 @@ function WorldMapFrame_OnLoad(self)
 	self:SetClampRectInsets(0, 0, 0, -60);				-- don't overlap the xp/rep bars
 	self.poiHighlight = nil;
 	self.areaName = nil;
-	WorldMapFrame_Update();
+	
+	-- RE: Bug ID: 345647 - Texture errors occur after entering the Nexus and relogging.
+	-- The correct GetMapInfo() data is not yet available here, so don't try preloading incorrect map textures.
+	--WorldMapFrame_Update();
 
 	--[[ Hide the world behind the map when we're in widescreen mode
 	local width = GetScreenWidth();
@@ -305,11 +308,10 @@ function WorldMapFrame_OnShow(self)
 	end
 
 	-- check to show the help plate
-	if ( not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_WORLD_MAP_FRAME) ) then
+	if ( (not NewPlayerExperience or not NewPlayerExperience.IsActive) and not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_WORLD_MAP_FRAME) ) then
 		local helpPlate = WorldMapFrame_HelpPlate;
 		if ( helpPlate and not HelpPlate_IsShowing(helpPlate) ) then
-			HelpPlate_Show( helpPlate, WorldMapFrame, WorldMapFrame.MainHelpButton );
-			SetCVarBitfield( "closedInfoFrames", LE_FRAME_TUTORIAL_WORLD_MAP_FRAME, true );
+			WorldMapFrame_ToggleTutorial();
 		end
 	end
 
@@ -428,7 +430,8 @@ function WorldMapFrame_OnEvent(self, event, ...)
 	elseif ( event == "UNIT_PORTRAIT_UPDATE" ) then
 		EncounterJournal_UpdateMapButtonPortraits();
 	elseif ( event == "SUPER_TRACKED_QUEST_CHANGED" ) then
-		WorldMapPOIFrame_SelectPOI(...);
+		local questID = ...;
+		WorldMapPOIFrame_SelectPOI(questID);
 	elseif ( event == "PLAYER_STARTED_MOVING" ) then
 		if ( GetCVarBool("mapFade") ) then
 			WorldMapFrame_AnimAlphaOut(self, true);
@@ -441,6 +444,18 @@ function WorldMapFrame_OnEvent(self, event, ...)
 		WorldMap_UpdateQuestBonusObjectives();
 	elseif ( event == "QUESTTASK_UPDATE" and WorldMapFrame:IsVisible() ) then
 		TaskPOI_OnEnter(_G["lastPOIButtonUsed"]);
+	end
+end
+
+function WorldMapFrame_OnUserChangedSuperTrackedQuest(questID)
+	if ( WorldMapFrame:IsShown() ) then
+		local mapID, floorNumber = GetQuestWorldMapAreaID(questID);
+		if ( mapID ~= 0 ) then
+			SetMapByID(mapID, floorNumber);
+			if ( floorNumber ~= 0 ) then
+				SetDungeonMapLevel(floorNumber);
+			end
+		end
 	end
 end
 
@@ -1959,6 +1974,8 @@ function WorldMap_ToggleSizeUp()
 	-- adjust main frame
 	WorldMapFrame:SetParent(nil);
 	WorldMapTooltip:SetFrameStrata("TOOLTIP");	
+	WorldMapPlayerLower:SetFrameStrata("MEDIUM");
+	WorldMapPlayerLower:SetFrameStrata("FULLSCREEN");
 	WorldMapFrame:ClearAllPoints();
 	WorldMapFrame:SetAllPoints();
 	SetUIPanelAttribute(WorldMapFrame, "area", "full");
@@ -2011,6 +2028,8 @@ function WorldMap_ToggleSizeDown()
 	WorldMapFrame:SetParent(UIParent);
 	WorldMapFrame:SetFrameStrata("HIGH");
 	WorldMapTooltip:SetFrameStrata("TOOLTIP");
+	WorldMapPlayerLower:SetFrameStrata("MEDIUM");
+	WorldMapPlayerLower:SetFrameStrata("FULLSCREEN");
 	WorldMapFrame:EnableKeyboard(false);
 	-- adjust map frames
 	WorldMapDetailFrame:SetScale(WORLDMAP_WINDOWED_SIZE);
@@ -2082,7 +2101,11 @@ function WorldMapQuestPOI_SetTooltip(poiButton, questLogIndex, numObjectives)
 	WorldMapTooltip:SetOwner(poiButton or WorldMapBlobFrame, "ANCHOR_CURSOR_RIGHT", 5, 2);
 	WorldMapTooltip:SetText(title);
 	if ( poiButton and poiButton.style ~= "numeric" ) then
-		WorldMapTooltip:AddLine("- "..GetQuestLogCompletionText(questLogIndex), 1, 1, 1, true);
+		if ( IsBreadcrumbQuest(poiButton.questID) ) then
+			WorldMapTooltip:AddLine("- "..GetQuestLogCompletionText(questLogIndex), 1, 1, 1, true);
+		else
+			WorldMapTooltip:AddLine("- "..QUEST_WATCH_QUEST_READY, 1, 1, 1, true);
+		end
 	else
 		local text, finished, objectiveType;
 		local numItemDropTooltips = GetNumQuestItemDrops(questLogIndex);
@@ -2117,7 +2140,11 @@ function WorldMapQuestPOI_AppendTooltip(poiButton, questLogIndex)
 	WorldMapTooltip:AddLine(" ");
 	WorldMapTooltip:AddLine(title);
 	if ( poiButton and poiButton.style ~= "numeric" ) then
-		WorldMapTooltip:AddLine("- "..GetQuestLogCompletionText(questLogIndex), 1, 1, 1, true);
+		if ( IsBreadcrumbQuest(poiButton.questID) ) then
+			WorldMapTooltip:AddLine("- "..GetQuestLogCompletionText(questLogIndex), 1, 1, 1, true);
+		else
+			WorldMapTooltip:AddLine("- "..QUEST_WATCH_QUEST_READY, 1, 1, 1, true);
+		end			
 	else
 		local text, finished, objectiveType;
 		local numItemDropTooltips = GetNumQuestItemDrops(questLogIndex);
@@ -2130,7 +2157,7 @@ function WorldMapQuestPOI_AppendTooltip(poiButton, questLogIndex)
 			end
 		else
 			local numPOITooltips = WorldMapBlobFrame:GetNumTooltips();
-			numObjectives = numObjectives or GetNumQuestLeaderBoards(questLogIndex);
+			local numObjectives = GetNumQuestLeaderBoards(questLogIndex);
 			for i = 1, numObjectives do
 				if(numPOITooltips and (numPOITooltips == numObjectives)) then
 					local questPOIIndex = WorldMapBlobFrame:GetTooltipIndex(i);
@@ -2873,13 +2900,19 @@ WorldMapFrame_HelpPlate = {
 	FramePos = { x = 4,	y = -40 },
 	FrameSize = { width = 985, height = 500	},
 	[1] = { ButtonPos = { x = 350,	y = -180 }, HighLightBox = { x = 0, y = -30, width = 695, height = 470 },		ToolTipDir = "DOWN",		ToolTipText = WORLD_MAP_TUTORIAL1 },
-	[2] = { ButtonPos = { x = 810,	y = -180 }, HighLightBox = { x = 700, y = -30, width = 285, height = 470 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL2 },
-	[3] = { ButtonPos = { x = 810,	y = 16 }, HighLightBox = { x = 700, y = 16, width = 285, height = 44 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL3 },
-	[4] = { ButtonPos = { x = 350,	y = 16 }, HighLightBox = { x = 50, y = 16, width = 645, height = 44 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL4 },
+	[2] = { ButtonPos = { x = 350,	y = 16 }, HighLightBox = { x = 50, y = 16, width = 645, height = 44 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL4 },
 }
 
 function WorldMapFrame_ToggleTutorial()
 	local helpPlate = WorldMapFrame_HelpPlate;
+	
+	if ( QuestMapFrame:IsShown() ) then
+		helpPlate[3] = { ButtonPos = { x = 810,	y = -180 }, HighLightBox = { x = 700, y = -30, width = 285, height = 470 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL2 };
+		helpPlate[4] = { ButtonPos = { x = 810,	y = 16 }, HighLightBox = { x = 700, y = 16, width = 285, height = 44 },	ToolTipDir = "DOWN",	ToolTipText = WORLD_MAP_TUTORIAL3 };
+	else
+		helpPlate[3] = nil;
+		helpPlate[4] = nil;
+	end
 		
 	if ( helpPlate and not HelpPlate_IsShowing(helpPlate) and WorldFrame:IsShown()) then
 		HelpPlate_Show( helpPlate, WorldMapFrame, WorldMapFrame.MainHelpButton, true );

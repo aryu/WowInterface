@@ -5,7 +5,7 @@
 		<Layers>
 			<Layer level="ARTWORK">
 				<FontString parentKey="Text" inherits="GameFontHighlightLeft">
-					<Size x="75" y="0"/>
+					<Size x="100" y="0"/>
 					<Anchors>
 						<Anchor point="LEFT" relativePoint="RIGHT" x="2"/>
 					</Anchors>
@@ -15,8 +15,8 @@
 	</CheckButton>
 		
 	<Frame name="GarrisonRecruitAbilityTemplate" parentArray="Entries" virtual="true">
-		<Size x="200" y="28"/>
-		<Layers>			
+		<Size x="168" y="28"/>
+		<Layers>
 			<Layer level="ARTWORK">
 				<Texture parentKey="Icon">
 					<Size x="23" y="23"/>
@@ -25,7 +25,7 @@
 					</Anchors>
 				</Texture>
 				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" justifyV="CENTER">
-					<Size x="170" y="28"/>
+					<Size x="138" y="28"/>
 					<Anchors>
 						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" x="8" y="0"/>
 					</Anchors>
@@ -34,12 +34,16 @@
 		</Layers>
 		<Scripts>
 			<OnEnter>
-				if (self.tooltip) then
-					GameTooltip:SetOwner(self, "ANCHOR_CURSOR_RIGHT");
-					GameTooltip:SetText(self.tooltip, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b);
+				if ( self.abilityID ) then
+					GarrisonFollowerAbilityTooltip:ClearAllPoints();
+					GarrisonFollowerAbilityTooltip:SetPoint("TOPLEFT", self.Icon, "BOTTOMRIGHT");
+					GarrisonFollowerAbilityTooltip_Show(self.abilityID);
+					return;
 				end
 			</OnEnter>
-			<OnLeave function="GameTooltip_Hide"/>
+			<OnLeave>
+				GarrisonFollowerAbilityTooltip:Hide();
+			</OnLeave>
 		</Scripts>
 	</Frame>
 	
@@ -55,8 +59,8 @@
 				</Texture>
 			</Layer>
 			<Layer level="ARTWORK">
-				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" text="Goblin Freeman">
-					<Size x="140" y="0"/>
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
+					<Size x="120" y="0"/>
 					<Anchors>
 						<Anchor point="LEFT" relativePoint="TOPLEFT" x="66" y="-28"/>
 					</Anchors>
@@ -138,23 +142,17 @@
 				</Layers>
 			</Frame>
 			
-			<CinematicModel parentKey="Model" hidden="true" inherits="GarrisonCinematicModelBaseTemplate">
+			<CinematicModel parentKey="Model" hidden="true" inherits="ModelTemplate">
 				<Size x="188" y="300"/>
 				<Anchors>
-					<Anchor point="BOTTOM" y="32"/>
+					<Anchor point="BOTTOM" y="-20"/>
 				</Anchors>
-				<Scripts>
-					<OnLoad>
-						GarrisonCinematicModelBase_OnLoad(self);
-						self:SetTargetDistance(0);
-						self:SetHeightFactor(.25);
-						self:SetFacing(.4);
-						self:InitializeCamera(.7);
-					</OnLoad>
-					<OnShow>
-						self:SetCameraPosition(3.5, 0, 1);
-					</OnShow>
-				</Scripts>
+					<Scripts>
+						<OnShow>
+							self:SetTargetDistance(0);
+							self:SetFacing(.2);
+						</OnShow>
+					</Scripts>
 			</CinematicModel>
 			<Button parentKey="HireRecruits" inherits="MagicButtonTemplate" text="GARRISON_HIRE_FOLLOWER">
 				<Size x="116" y="22"/>
@@ -165,6 +163,7 @@
 					<OnClick function="GarrisonRecruiterFrame_HireRecruit"/>
 					<OnLoad>
 						self:SetWidth(max(112, self:GetTextWidth() + 48));
+						self:SetFrameLevel(self:GetParent().Model:GetFrameLevel() + 1);
 					</OnLoad>
 				</Scripts>
 			</Button>
@@ -230,7 +229,7 @@
 						<FontString parentKey="Title2" inherits="GameFontNormalLarge" justifyH="CENTER" justifyV="BOTTOM" text="GARRISON_CHOOSE_THREAT" wordwrap="true">
 							<Size y="88"/>
 							<Anchors>
-								<Anchor point="TOP" relativePoint="CENTER" y="68"/>
+								<Anchor point="TOP" relativePoint="CENTER" y="100"/>
 								<Anchor point="LEFT" relativePoint="LEFT" x="44"/>
 								<Anchor point="RIGHT" relativePoint="RIGHT" x="-44"/>
 							</Anchors>
@@ -246,7 +245,7 @@
 				<Frames>
 					<CheckButton parentKey="Radio1" inherits="GarrisonRecruiterRadioButtonTemplate" id="1">
 						<Anchors>
-							<Anchor point="LEFTTOP" relativeKey="$parent.Line1" relativePoint="LEFTBOTTOM" x="32" y="-12"/>
+							<Anchor point="LEFTTOP" relativeKey="$parent.Line1" relativePoint="LEFTBOTTOM" x="0" y="-12"/>
 						</Anchors>
 						<Scripts>
 							<OnClick function="GarrisonRecruiterType_OnClick" />
@@ -254,7 +253,7 @@
 					</CheckButton>
 					<CheckButton parentKey="Radio2" inherits="GarrisonRecruiterRadioButtonTemplate" id ="2">
 						<Anchors>
-							<Anchor point="LEFT" relativeKey="$parent.Line1" relativePoint="CENTER" x="16" y="-12"/>
+							<Anchor point="LEFT" relativeKey="$parent.Line1" relativePoint="CENTER" x="6" y="-12"/>
 							<Anchor point="TOP" relativeKey="$parent.Radio1" relativePoint="TOP"/>
 						</Anchors>
 						<Scripts>
@@ -278,23 +277,22 @@
 					
 					<Frame parentKey="Counter" inherits="GarrisonAbilityCounterTemplate">	
 						<Anchors>
-							<Anchor point="LEFTTOP" relativeKey="$parent.Line2" relativePoint="LEFTBOTTOM" x="0" y="-42"/>
+							<Anchor point="LEFTTOP" relativeKey="$parent.Line2" relativePoint="LEFTBOTTOM" x="6" y="-48"/>
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK" >
-								<FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT" justifyV="TOP">
+								<FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT" justifyV="CENTER">
 									<Anchors>
-										<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="0" y="-8"/>
-										<Anchor point="BOTTOM" relativePoint="BOTTOM" x="-8" y="8"/>
+										<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="8" y="0"/>
+										<Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="1"/>
 										<Anchor point="RIGHT" relativeTo="GarrisonRecruiterFramePickThreatDropDown" relativePoint="RIGHT"/>
 									</Anchors>
 								</FontString>
 								<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" justifyV="TOP" wordwrap="true">
-							
 									<Anchors>
-										<Anchor point="TOPLEFT" relativePoint="BOTTOMRIGHT" x="0" y="8"/>
-										<Anchor point="BOTTOM" x="0" y="-32"/>
-										<Anchor point="RIGHT" relativeTo="GarrisonRecruiterFramePickThreatDropDown"/>
+										<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="-6" y="-6"/>
+										<Anchor point="BOTTOM" x="0" y="-80"/>
+										<Anchor point="RIGHT" relativeTo="GarrisonRecruiterFramePickThreatDropDown" x="-8" y="0"/>
 									</Anchors>
 								</FontString>
 							</Layer>
@@ -389,6 +387,30 @@
 			<Anchor point="CENTER"/>
 		</Anchors>
 		<Frames>
+			<Frame parentKey="FollowerList" inherits="GarrisonListTemplateHeader">
+				<Size x="305" y="565"/>
+				<KeyValues>
+					 <KeyValue key="canExpand" value="true" type="boolean"/>
+				</KeyValues>				
+				<Anchors>
+					<Anchor point="TOPLEFT" x="33" y="-64"/>
+				</Anchors>
+				<Frames>
+					<EditBox parentKey="SearchBox" inherits="SearchBoxTemplate" letters="40">
+						<Size x="236" y="20"/>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeKey="$parent.HeaderLeft" x="17" y="-10"/>
+						</Anchors>
+						<Scripts>
+							<OnTextChanged function="GarrisonFollowListEditBox_OnTextChanged"/>
+						</Scripts>
+					</EditBox>
+				</Frames>
+				<Scripts>
+					<OnShow function="GarrisonFollowerList_OnShow"/>
+					<OnHide function="GarrisonFollowerList_OnHide"/>
+				</Scripts>
+			</Frame>		
 			<Frame parentKey="FollowerSelection" inherits="GarrisonMissionBaseFrameTemplate">
 				<Size x="580" y="565"/>
 				<Anchors>

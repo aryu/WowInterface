@@ -241,19 +241,13 @@
 			<Button name="$parentItem36" inherits="ContainerFrameItemButtonTemplate"/>
 
 			<Button name="$parentPortraitButton" parentKey="PortraitButton">
-				<Size>
-					<AbsDimension x="40" y="40"/>
-				</Size>
+				<Size x="40" y="40"/>
 				<Anchors>
-					<Anchor point="TOPLEFT">
-						<Offset>
-							<AbsDimension x="7" y="-5"/>
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" x="7" y="-5"/>
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<Texture parentKey="Highlight" atlas="bags-roundhighlight" alphaMode="ADD" hidden="true" alpha="0.8">
+						<Texture parentKey="Highlight" atlas="bags-roundhighlight" alphaMode="ADD" hidden="true">
 							<Size x="36" y="36"/>
 							<Anchors>
 								<Anchor point="CENTER" x="-3" y="3"/>
@@ -271,14 +265,28 @@
 								GameTooltip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..GetBindingKey("TOGGLEBACKPACK")..")"..FONT_COLOR_CODE_CLOSE)
 							end
 						else
-							local link = GetInventoryItemLink("player", ContainerIDToInventoryID(self:GetID()));
+							local parent = self:GetParent();
+							local id = parent:GetID();
+							local link = GetInventoryItemLink("player", ContainerIDToInventoryID(id));
 							local name, _, quality = GetItemInfo(link);
 							local r, g, b = GetItemQualityColor(quality);
 							GameTooltip:SetText(name, r, g, b);
-							for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
-								if ( GetBagSlotFlag(self:GetID(), i) ) then
-									GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]));
-									break;
+							if (not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(id))) then
+								if (parent.localFlag and BAG_FILTER_LABELS[parent.localFlag]) then
+									GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[parent.localFlag]));
+								elseif (not parent.localFlag) then
+									for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
+										local active = false;
+										if ( self:GetID() > NUM_BAG_SLOTS ) then
+											active = GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i);
+										else
+											active = GetBagSlotFlag(id, i);
+										end
+										if ( active ) then
+											GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]));
+											break;
+										end
+									end
 								end
 							end
 							local binding = GetBindingKey("TOGGLEBAG"..(4 - self:GetID() + 1));
@@ -286,7 +294,9 @@
 								GameTooltip:AppendText(" "..NORMAL_FONT_COLOR_CODE.."("..binding..")"..FONT_COLOR_CODE_CLOSE);
 							end
 						end
-						GameTooltip:AddLine(CLICK_BAG_SETTINGS);
+						if (self:GetID() == 0 or not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(self:GetID()))) then
+							GameTooltip:AddLine(CLICK_BAG_SETTINGS);
+						end
 						GameTooltip:Show();
 					</OnEnter>
 					<OnLeave>
@@ -294,19 +304,50 @@
 						GameTooltip:Hide();
 					</OnLeave>
 					<OnClick>
+						if (self:GetID() ~= 0 and IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(self:GetID()))) then
+							return;
+						end
 						local parent = self:GetParent();
 						PlaySound("igMainMenuOptionCheckBoxOn");
 						ToggleDropDownMenu(1, nil, parent.FilterDropDown, self, 0, 0);
 					</OnClick>
 				</Scripts>
 			</Button>
+			<Button parentKey="FilterIcon" hidden="true">
+				<Size x="28" y="28"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeKey="$parent.Portrait" relativePoint="BOTTOMRIGHT" x="-9" y="14"/>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<Texture parentKey="Icon" atlas="bags-icon-consumables" useAtlasSize="true">
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnShow>
+						self:SetFrameLevel(self:GetParent().PortraitButton:GetFrameLevel()+1);
+					</OnShow>
+					<OnEnter>
+						local target = self:GetParent().PortraitButton;
+						target:GetScript("OnEnter")(target);
+					</OnEnter>
+					<OnLeave>
+						local target = self:GetParent().PortraitButton;
+						target:GetScript("OnLeave")(target);
+					</OnLeave>
+					<OnClick>
+						local target = self:GetParent().PortraitButton;
+						target:GetScript("OnClick")(target);
+					</OnClick>
+				</Scripts>
+			</Button>
 			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
 				<Anchors>
-					<Anchor point="TOPRIGHT" relativeTo="$parent" relativePoint="TOPRIGHT">
-						<Offset>
-							<AbsDimension x="0" y="-1"/>
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPRIGHT" relativeTo="$parent" relativePoint="TOPRIGHT" x="0" y="-1"/>
 				</Anchors>
 				<Scripts>
 					<OnClick>
@@ -378,13 +419,14 @@
 		<NormalTexture atlas="bags-button-autosort-up"/>
 		<PushedTexture atlas="bags-button-autosort-down"/>
 		<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD">
-			<Size x="26" y="24"/>
+			<Size x="24" y="23"/>
 			<Anchors>
-				<Anchor point="CENTER" x="0" y="1"/>
+				<Anchor point="CENTER" x="0" y="0"/>
 			</Anchors>
 		</HighlightTexture>
 		<Scripts>
 			<OnClick>
+				PlaySound("UI_BagSorting_01");
 				SortBags();
 			</OnClick>
 			<OnEnter>
@@ -415,6 +457,9 @@
 				</Anchors>
 				<Scripts>
 					<OnClick>
+						if (self:GetParent().bitField) then
+							SetCVarBitfield("closedInfoFrames", self:GetParent().bitField, true);
+						end
 						self:GetParent():Hide();
 					</OnClick>
 				</Scripts>

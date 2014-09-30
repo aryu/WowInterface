@@ -493,7 +493,7 @@ function InterfaceOptionsLossOfControl_SetUpDropdown(dropDown, cvar, checkBox, t
 
 	UIDropDownMenu_SetWidth(dropDown, 130);
 	UIDropDownMenu_Initialize(dropDown, InterfaceOptionsLossOfControlDropDown_Initialize);
-	UIDropDownMenu_SetSelectedValue(dropDown, value);
+	UIDropDownMenu_SetSelectedValue(dropDown, dropDown.value);
 
 	dropDown.SetValue = InterfaceOptionsLossOfControlDropDown_SetValue;
 	dropDown.GetValue = InterfaceOptionsLossOfControlDropDown_GetValue;
@@ -583,7 +583,7 @@ function InterfaceOptionsDisplayPanelOutlineDropDown_OnEvent (self, event, ...)
 		self.oldValue = value;
 		self.tooltip = OPTION_TOOLTIP_OBJECT_NPC_OUTLINE;
 
-		UIDropDownMenu_SetWidth(self, 140);
+		UIDropDownMenu_SetWidth(self, 180);
 		UIDropDownMenu_Initialize(self, InterfaceOptionsDisplayPanelOutline_Initialize);
 		UIDropDownMenu_SetSelectedValue(self, value);
 
@@ -614,7 +614,7 @@ end
 function InterfaceOptionsDisplayPanelOutline_Initialize()
 	local selectedValue = UIDropDownMenu_GetSelectedValue(InterfaceOptionsDisplayPanelOutlineDropDown);
 	local info = UIDropDownMenu_CreateInfo();
---[[
+
 	info.text = OBJECT_NPC_OUTLINE_DISABLED;
 	info.func = InterfaceOptionsDisplayPanelOutlineDropDown_OnClick;
 	info.value = "0";
@@ -624,7 +624,7 @@ function InterfaceOptionsDisplayPanelOutline_Initialize()
 		info.checked = nil;
 	end
 	UIDropDownMenu_AddButton(info);
-]]--
+
 	info.text = OBJECT_NPC_OUTLINE_MODE_ONE;
 	info.func = InterfaceOptionsDisplayPanelOutlineDropDown_OnClick;
 	info.value = "1";
@@ -661,7 +661,6 @@ end
 ObjectivesPanelOptions = {
 	autoQuestWatch = { text = "AUTO_QUEST_WATCH_TEXT" },
 	autoQuestProgress = { text = "AUTO_QUEST_PROGRESS_TEXT" },
-	mapQuestDifficulty = { text = "MAP_QUEST_DIFFICULTY_TEXT" },
 	advancedWorldMap = { text = "ADVANCED_WORLD_MAP_TEXT" },
 	mapFade = { text = "MAP_FADE_TEXT" },
 }
@@ -2213,3 +2212,32 @@ HelpPanelOptions = {
 	colorblindMode = { text = "USE_COLORBLIND_MODE" },
 	enableMovePad = { text = "MOVE_PAD" },
 }
+
+function InterfaceOptionsHelpPanel_OnLoad(self)
+	self.name = HELP_LABEL;
+	self.options = HelpPanelOptions;
+	InterfaceOptionsPanel_OnLoad(self);
+
+	self:SetScript("OnEvent", InterfaceOptionsHelpPanel_OnEvent);
+	self:RegisterEvent("CVAR_UPDATE");
+	self:RegisterEvent("NPE_TUTORIAL_UPDATE");
+end
+
+function InterfaceOptionsHelpPanel_OnEvent(self, event, ...)
+	local loadNPE = false;
+	if ( event == "CVAR_UPDATE" ) then
+		local cVarName = ...;
+		loadNPE = cVarName == "SHOW_TUTORIALS";
+	elseif ( event == "NPE_TUTORIAL_UPDATE" ) then
+		loadNPE = true;
+	end
+	
+	if ( loadNPE ) then
+		if ( GetCVarBool("showTutorials") and GetCVarBool("showNPETutorials") ) then
+			NPETutorial_AttemptToBegin(event);
+		elseif ( NewPlayerExperience ) then
+			NewPlayerExperience:Shutdown();
+		end
+	end
+	BlizzardOptionsPanel_OnEvent(self, event, ...);
+end

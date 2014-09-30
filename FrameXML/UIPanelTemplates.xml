@@ -1,7 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
-	<EditBox name="SearchBoxTemplate" inherits="InputBoxTemplate" autoFocus="false" virtual="true">
+	<EditBox name="SearchBoxTemplate" inherits="InputBoxInstructionsTemplate" autoFocus="false" virtual="true">
 		<Layers>
 			<Layer level="OVERLAY">
 				<Texture name="$parentSearchIcon" file="Interface\Common\UI-Searchbox-Icon" parentKey="searchIcon">
@@ -39,33 +39,23 @@
 					</OnLeave>
 					<OnMouseDown>
 						if self:IsEnabled() then
-							self.texture:SetPoint("TOPLEFT", 1, -1);
+							self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1);
 						end
 					</OnMouseDown>
 					<OnMouseUp>
-						self.texture:SetPoint("TOPLEFT", 0, 0);
+						self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0);
 					</OnMouseUp>
-					<OnClick>
-						PlaySound("igMainMenuOptionCheckBoxOn");
-						local editBox = self:GetParent();
-						if editBox.clearFunc then
-							editBox.clearFunc(editBox);
-						end
-						
-						editBox:SetText("");
-						if not editBox:HasFocus() then
-							editBox:GetScript("OnEditFocusLost")(editBox);
-						end
-						editBox:ClearFocus();
-					</OnClick>
+					<OnClick function="SearchBoxTemplateClearButton_OnClick"/>
 				</Scripts>
 			</Button>
 		</Frames>
 		<Scripts>
 			<OnLoad function="SearchBoxTemplate_OnLoad"/>
 			<OnEscapePressed function="EditBox_ClearFocus"/>
+			<OnEnterPressed function="EditBox_ClearFocus"/>
 			<OnEditFocusLost function="SearchBoxTemplate_OnEditFocusLost"/>
-			<OnEditFocusGained function="SerachBoxTemplate_OnEditFocusGained"/>
+			<OnEditFocusGained function="SearchBoxTemplate_OnEditFocusGained"/>
+			<OnTextChanged function="SearchBoxTemplate_OnTextChanged"/>
 		</Scripts>
 	</EditBox>
 	<EditBox name="BagSearchBoxTemplate" inherits="SearchBoxTemplate" autoFocus="false" virtual="true">
@@ -73,9 +63,6 @@
 			<OnHide function="BagSearch_OnHide"/>
 			<OnTextChanged function="BagSearch_OnTextChanged"/>
 			<OnChar function="BagSearch_OnChar"/>
-			<OnEnterPressed function="EditBox_ClearFocus"/>
-			<OnEditFocusLost function="BagSearch_OnEditFocusLost"/>
-			<OnEditFocusGained function="BagSearch_OnEditFocusGained"/>
 		</Scripts>
 	</EditBox>
 	<CheckButton name="UICheckButtonTemplate" virtual="true">
@@ -2250,6 +2237,9 @@
 -->
 	<Button name="MainHelpPlateButton" virtual="true">
 		<Size x="64" y="64"/>
+		<HitRectInsets>
+			<AbsInset left="20" right="20" top="20" bottom="20"/>
+		</HitRectInsets>		
 		<Layers>
 			<Layer level="BACKGROUND">
 				<Texture parentKey="I" file="Interface\common\help-i">
@@ -2585,6 +2575,12 @@
 					<OnEscapePressed>
 						self:ClearFocus();
 					</OnEscapePressed>
+					<OnEditFocusGained>
+						self:GetParent().FocusButton:Hide();
+					</OnEditFocusGained>
+					<OnEditFocusLost>
+						self:GetParent().FocusButton:Show();
+					</OnEditFocusLost>
 				</Scripts>
 				<FontString inherits="GameFontHighlightSmall"/>
 			</EditBox>
@@ -2625,4 +2621,53 @@
 			</AnimationGroup>
 		</Animations>
 	</Frame>
+	
+	<Frame name="GarrisonFollowerPortraitTemplate" virtual="true">
+		<Size x="52" y="60"/>
+		<Layers>
+			<Layer level="BORDER">
+				<Texture parentKey="PortraitRing" atlas="GarrMission_PortraitRing" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOP"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="-1">
+				<Texture parentKey="Portrait">
+					<Size x="44" y="44"/>
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent.PortraitRing" y="5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="1">
+				<Texture parentKey="PortraitRingQuality" atlas="GarrMission_PortraitRing_Quality" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOP"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER" textureSubLevel="2">
+				<Texture parentKey="LevelBorder" atlas="GarrMission_PortraitRing_LevelBorder" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOM" y="-3"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Level" inherits="GameFontHighlightSmall" justifyH="CENTER" text="95">
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent.LevelBorder"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="PortraitRingCover" atlas="GarrMission_PortraitRing_Darkener" useAtlasSize="true" hidden="true" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-1"/>
+					</Anchors>
+				</Texture>			
+			</Layer>
+		</Layers>
+	</Frame>	
 </Ui>

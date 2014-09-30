@@ -48,11 +48,24 @@ function BankFrameItemButton_OnEnter (self)
 		return;
 	end
 
+	if (self.isBag) then
+		if (not IsInventoryItemProfessionBag("player", self:GetInventorySlot())) then
+			for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
+				if ( GetBankBagSlotFlag(self:GetID(), i) ) then
+					GameTooltip:AddLine(BAG_FILTER_ASSIGNED_TO:format(BAG_FILTER_LABELS[i]));
+					break;
+				end
+			end
+		end
+	end
+
 	if ( not hasItem ) then
 		if ( self.isBag ) then
 			GameTooltip:SetText(self.tooltipText);
 		end
 	end
+
+	GameTooltip:Show();
 	CursorUpdate(self);
 end
 
@@ -253,7 +266,10 @@ function BankFrame_OnEvent (self, event, ...)
 				BankFrameItemButton_UpdateLocked(BankSlotsFrame["Bag"..(slot-NUM_BANKGENERIC_SLOTS)]);
 			end
 		elseif ( bag == REAGENTBANK_CONTAINER ) then
-			BankFrameItemButton_UpdateLocked(ReagentBankFrame["Item"..(slot)]);
+			local button = ReagentBankFrame["Item"..(slot)];
+			if (button) then
+				BankFrameItemButton_UpdateLocked(button);
+			end
 		end
 	elseif ( event == "PLAYERBANKSLOTS_CHANGED" ) then
 		local slot = ...;
@@ -296,6 +312,17 @@ function BankFrame_OnShow (self)
 	end
 	UpdateBagSlotStatus();
 	OpenAllBags(self);
+
+	if(not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_REAGENT_BANK_UNLOCK)) then
+		local numSlots,full = GetNumBankSlots();
+		if (full and not IsReagentBankUnlocked()) then
+			ReagentBankHelpBox:Show();
+		else
+			ReagentBankHelpBox:Hide();
+		end
+	else
+		ReagentBankHelpBox:Hide();
+	end
 end
 
 function BankFrame_OnHide (self)
@@ -343,7 +370,7 @@ function BankFrameItemButtonGeneric_OnModifiedClick (self, button)
 end
 
 function UpdateBagButtonHighlight (id) 
-	local texture = BankSlotsFrame["Bag"..(id)]:GetHighlightTexture();
+	local texture = BankSlotsFrame["Bag"..(id)].HighlightFrame.HighlightTexture;
 	if ( not texture ) then
 		return;
 	end
@@ -351,7 +378,7 @@ function UpdateBagButtonHighlight (id)
 	local frame;
 	for i=1, NUM_CONTAINER_FRAMES, 1 do
 		frame = _G["ContainerFrame"..i];
-		if ( ( frame:GetID() == id ) and frame:IsShown() ) then
+		if ( ( frame:GetID() == (id + NUM_BAG_SLOTS) ) and frame:IsShown() ) then
 			texture:Show();
 			return;
 		end
@@ -429,6 +456,7 @@ end
 function BankFrame_AutoSortButtonOnClick()
 	local self = BankFrame;
 
+	PlaySound("UI_BagSorting_01");
 	if (self.activeTabIndex == 1) then
 		SortBankBags();
 	elseif (self.activeTabIndex == 2) then
@@ -451,6 +479,9 @@ function ReagentBankFrame_OnEvent(self, event, ...)
 end
 
 function ReagentBankFrame_OnShow(self)
+	ReagentBankHelpBox:Hide();
+	SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_REAGENT_BANK_UNLOCK, true);
+
 	if(not IsReagentBankUnlocked()) then		
 		ReagentBankFrame.UnlockInfo:Show();
 		MoneyFrame_Update( ReagentBankFrame.UnlockInfo.CostMoneyFrame, GetReagentBankCost());

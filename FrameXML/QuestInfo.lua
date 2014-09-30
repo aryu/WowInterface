@@ -286,7 +286,7 @@ end
 function QuestInfo_GetRewardButton(rewardsFrame, index)
 	local rewardButtons = rewardsFrame.RewardButtons;
 	if ( not rewardButtons[index] ) then
-		button = CreateFrame("BUTTON", "$parentQuestInfoItem"..index, rewardsFrame, rewardsFrame.buttonTemplate);
+		local button = CreateFrame("BUTTON", "$parentQuestInfoItem"..index, rewardsFrame, rewardsFrame.buttonTemplate);
 		rewardButtons[index] = button;
 	end
 	return rewardButtons[index];
@@ -306,29 +306,33 @@ function QuestInfo_ShowRewards()
 	local totalHeight = 0;
 	local rewardsFrame = QuestInfoFrame.rewardsFrame;
 	
+	local spellGetter;
 	if ( QuestInfoFrame.questLog ) then
 		numQuestRewards = GetNumQuestLogRewards();
 		numQuestChoices = GetNumQuestLogChoices();
 		numQuestCurrencies = GetNumQuestLogRewardCurrencies();
-		if ( GetQuestLogRewardSpell() ) then
-			numQuestSpellRewards = 1;
-		end
 		money = GetQuestLogRewardMoney();
 		skillName, skillIcon, skillPoints = GetQuestLogRewardSkillPoints();
 		xp = GetQuestLogRewardXP();
 		playerTitle = GetQuestLogRewardTitle();
 		ProcessQuestLogRewardFactions();
+		spellGetter = GetQuestLogRewardSpell;
 	else
 		numQuestRewards = GetNumQuestRewards();
 		numQuestChoices = GetNumQuestChoices();
 		numQuestCurrencies = GetNumRewardCurrencies();
-		if ( GetRewardSpell() ) then
-			numQuestSpellRewards = 1;
-		end
 		money = GetRewardMoney();
 		skillName, skillIcon, skillPoints = GetRewardSkillPoints();
 		xp = GetRewardXP();
 		playerTitle = GetRewardTitle();
+		spellGetter = GetRewardSpell;
+	end
+	if ( spellGetter ) then
+		local texture, name, isTradeskillSpell, isSpellLearned, hideSpellLearnText, isBoostSpell, garrFollowerID = spellGetter();
+		-- only allow the spell reward if user can learn it		
+		if ( texture and (not isBoostSpell or IsCharacterNewlyBoosted()) and (not garrFollowerID or not C_Garrison.IsFollowerCollected(garrFollowerID)) ) then
+			numQuestSpellRewards = 1;
+		end
 	end
 
 	local totalRewards = numQuestRewards + numQuestChoices + numQuestCurrencies;
@@ -343,7 +347,7 @@ function QuestInfo_ShowRewards()
 		rewardButtons[i]:Hide();
 	end
 	
-	local questItem, name, texture, isTradeskillSpell, isSpellLearned, quality, isUsable, numItems;
+	local questItem, name, texture, isTradeskillSpell, isSpellLearned, hideSpellLearnText, isBoostSpell, quality, isUsable, numItems, garrFollowerID;
 	local rewardsCount = 0;
 	local lastFrame = rewardsFrame.Header;
 	
@@ -412,15 +416,15 @@ function QuestInfo_ShowRewards()
 		rewardsFrame.SpellLearnText:Show();
 		rewardsFrame.SpellLearnText:SetPoint("TOPLEFT", lastFrame, "BOTTOMLEFT", 0, -REWARDS_SECTION_OFFSET);
 
-		if ( QuestInfoFrame.questLog ) then
-			texture, name, isTradeskillSpell, isSpellLearned, hideSpellLearnText = GetQuestLogRewardSpell();
-		else
-			texture, name, isTradeskillSpell, isSpellLearned, hideSpellLearnText = GetRewardSpell();
-		end
+		texture, name, isTradeskillSpell, isSpellLearned, hideSpellLearnText, isBoostSpell, garrFollowerID = spellGetter();
 		
 		if ( not hideSpellLearnText ) then
 			if ( isTradeskillSpell ) then
 				rewardsFrame.SpellLearnText:SetText(REWARD_TRADESKILL_SPELL);
+			elseif ( isBoostSpell ) then
+				rewardsFrame.SpellLearnText:SetText(REWARD_ABILITY);
+			elseif ( garrFollowerID ) then
+				rewardsFrame.SpellLearnText:SetText(REWARD_FOLLOWER);				
 			elseif ( not isSpellLearned ) then
 				rewardsFrame.SpellLearnText:SetText(REWARD_AURA);
 			else
@@ -428,17 +432,33 @@ function QuestInfo_ShowRewards()
 			end
 		end
 		totalHeight = totalHeight + rewardsFrame.SpellLearnText:GetHeight() + REWARDS_SECTION_OFFSET;
-
-		questItem = rewardsFrame.SpellFrame;
-		questItem:Show();
-		-- For the tooltip
-		questItem.Icon:SetTexture(texture);
-		questItem.Name:SetText(name);
+		if ( garrFollowerID ) then
+			rewardsFrame.SpellFrame:Hide();
+			questItem = rewardsFrame.FollowerFrame;
+			questItem:Show();
+			questItem.ID = garrFollowerID;
+			local followerInfo = C_Garrison.GetFollowerInfo(garrFollowerID);
+			questItem.Name:SetText(followerInfo.name);
+			questItem.PortraitFrame.Level:SetText(followerInfo.level);
+			questItem.Class:SetAtlas(followerInfo.classAtlas);
+			local color = ITEM_QUALITY_COLORS[followerInfo.quality];
+			questItem.PortraitFrame.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b);
+			questItem.PortraitFrame.LevelBorder:SetVertexColor(color.r, color.g, color.b);
+			GarrisonFollowerPortrait_Set(questItem.PortraitFrame.Portrait, followerInfo.portraitIconID);
+		else
+			rewardsFrame.FollowerFrame:Hide();
+			questItem = rewardsFrame.SpellFrame;
+			questItem:Show();
+			-- For the tooltip
+			questItem.Icon:SetTexture(texture);
+			questItem.Name:SetText(name);
+		end
 		questItem:SetPoint("TOPLEFT", rewardsFrame.SpellLearnText, "BOTTOMLEFT", 0, -REWARDS_SECTION_OFFSET);
 		lastFrame = questItem;
 		totalHeight = totalHeight + questItem:GetHeight() + REWARDS_SECTION_OFFSET;
 	else
 		rewardsFrame.SpellFrame:Hide();
+		rewardsFrame.FollowerFrame:Hide();
 		rewardsFrame.SpellLearnText:Hide();
 	end
 
@@ -569,8 +589,9 @@ function QuestInfo_ShowRewards()
 		
 		-- currency
 		baseIndex = rewardsCount;
-		for i = 1, numQuestCurrencies, 1 do
-			buttonIndex = buttonIndex + 1;
+		local foundCurrencies = 0;
+		buttonIndex = buttonIndex + 1;
+		for i = 1, GetMaxRewardCurrencies(), 1 do
 			index = i + baseIndex;
 			questItem = QuestInfo_GetRewardButton(rewardsFrame, index);
 			questItem.type = "reward";
@@ -580,29 +601,36 @@ function QuestInfo_ShowRewards()
 			else
 				name, texture, numItems = GetQuestCurrencyInfo(questItem.type, i);
 			end
-			questItem:SetID(i)
-			questItem:Show();
-			-- For the tooltip
-			questItem.Name:SetText(name);
-			SetItemButtonCount(questItem, numItems);
-			SetItemButtonTexture(questItem, texture);
-			SetItemButtonTextureVertexColor(questItem, 1.0, 1.0, 1.0);
-			SetItemButtonNameFrameVertexColor(questItem, 1.0, 1.0, 1.0);
-			
-			if ( buttonIndex > 1 ) then
-				if ( mod(buttonIndex,2) == 1 ) then
-					questItem:SetPoint("TOPLEFT", rewardButtons[index - 2], "BOTTOMLEFT", 0, -2);
-					lastFrame = questItem;
-					totalHeight = totalHeight + buttonHeight + 2;
+			if (name and texture and numItems) then
+				questItem:SetID(i)
+				questItem:Show();
+				-- For the tooltip
+				questItem.Name:SetText(name);
+				SetItemButtonCount(questItem, numItems);
+				SetItemButtonTexture(questItem, texture);
+				SetItemButtonTextureVertexColor(questItem, 1.0, 1.0, 1.0);
+				SetItemButtonNameFrameVertexColor(questItem, 1.0, 1.0, 1.0);
+				
+				if ( buttonIndex > 1 ) then
+					if ( mod(buttonIndex,2) == 1 ) then
+						questItem:SetPoint("TOPLEFT", rewardButtons[index - 2], "BOTTOMLEFT", 0, -2);
+						lastFrame = questItem;
+						totalHeight = totalHeight + buttonHeight + 2;
+					else
+						questItem:SetPoint("TOPLEFT", rewardButtons[index - 1], "TOPRIGHT", 1, 0);
+					end
 				else
-					questItem:SetPoint("TOPLEFT", rewardButtons[index - 1], "TOPRIGHT", 1, 0);
+					questItem:SetPoint("TOPLEFT", lastFrame, "BOTTOMLEFT", 0, -REWARDS_SECTION_OFFSET);
+					lastFrame = questItem;
+					totalHeight = totalHeight + buttonHeight + REWARDS_SECTION_OFFSET;
 				end
-			else
-				questItem:SetPoint("TOPLEFT", lastFrame, "BOTTOMLEFT", 0, -REWARDS_SECTION_OFFSET);
-				lastFrame = questItem;
-				totalHeight = totalHeight + buttonHeight + REWARDS_SECTION_OFFSET;
+				rewardsCount = rewardsCount + 1;
+				foundCurrencies = foundCurrencies + 1;
+				buttonIndex = buttonIndex + 1;
+				if (foundCurrencies == numQuestCurrencies) then
+					break;
+				end
 			end
-			rewardsCount = rewardsCount + 1;
 		end
 	else	
 		rewardsFrame.ItemReceiveText:Hide();
@@ -622,7 +650,7 @@ function QuestInfo_ShowRewards()
 end
 
 function QuestInfo_ToggleRewardElement(frame, value, anchor)
-	if ( value and value ~= 0 ) then
+	if ( value and tonumber(value) ~= 0 ) then
 		frame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -REWARDS_SECTION_OFFSET);
 		frame.ValueText:SetText(value);
 		frame:Show();

@@ -48,16 +48,17 @@ end
 
 function ScenarioBlocksFrame_OnFinishSlideIn()
 	SCENARIO_TRACKER_MODULE.BlocksFrame.slidingAction = nil;
+	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_SCENARIO);
 	ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_SCENARIO_BONUS_DELAYED);
 end
 
 function ScenarioBlocksFrame_OnFinishSlideOut()
 	SCENARIO_TRACKER_MODULE.BlocksFrame.slidingAction = nil;
 	ScenarioStageBlock.CompleteLabel:Hide();
-	local name, currentStage, numStages, _, _, _, _, _, _, completed = C_Scenario.GetInfo();
+	local name, currentStage, numStages = C_Scenario.GetInfo();
 	if ( currentStage and currentStage <= numStages ) then
 		ScenarioBlocksFrame_SlideIn();
-	elseif ( completed ) then
+	else
 		ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_MODULE_SCENARIO);
 	end	
 end
@@ -75,26 +76,38 @@ function ScenarioBlocksFrame_SlideIn()
 	ObjectiveTracker_SlideBlock(SCENARIO_TRACKER_MODULE.BlocksFrame, SLIDE_IN_DATA);
 end
 
-function ScenarioBlocksFrame_SetSlideOutLook()
-	SCENARIO_TRACKER_MODULE.BlocksFrame.slidingAction = "OUT";
-	SLIDE_OUT_DATA.startHeight = ScenarioStageBlock.height;	
+function ScenarioBlocksFrame_SetupStageBlock(scenarioCompleted)
 	ScenarioStageBlock.Stage:Hide();
 	ScenarioStageBlock.Name:Hide();
 	ScenarioStageBlock.CompleteLabel:Show();
-	ScenarioStageBlock.GlowTexture.AlphaAnim:Play();
-	ScenarioObjectiveBlock:Hide();	
-	local _, _, _, flags = C_Scenario.GetInfo();
-	local dungeonDisplay = bit.band(flags, SCENARIO_FLAG_USE_DUNGEON_DISPLAY) == SCENARIO_FLAG_USE_DUNGEON_DISPLAY;
-	if(dungeonDisplay)then
-		ScenarioStageBlock.CompleteLabel:SetText(DUNGEON_COMPLETED);
+	ScenarioObjectiveBlock:Hide();
+	if ( scenarioCompleted ) then
+		local _, _, _, flags = C_Scenario.GetInfo();
+		local dungeonDisplay = bit.band(flags, SCENARIO_FLAG_USE_DUNGEON_DISPLAY) == SCENARIO_FLAG_USE_DUNGEON_DISPLAY;
+		if( dungeonDisplay ) then
+			ScenarioStageBlock.CompleteLabel:SetText(DUNGEON_COMPLETED);
+		else
+			ScenarioStageBlock.CompleteLabel:SetText(SCENARIO_COMPLETED_GENERIC);
+		end
 	else
 		ScenarioStageBlock.CompleteLabel:SetText(STAGE_COMPLETE);
+	end
+	if ( OBJECTIVE_TRACKER_UPDATE_REASON == OBJECTIVE_TRACKER_UPDATE_SCENARIO_NEW_STAGE ) then
+		ScenarioStageBlock.GlowTexture.AlphaAnim:Play();
 	end
 end
 
 function ScenarioBlocksFrame_SlideOut()
-	ScenarioBlocksFrame_SetSlideOutLook();
+	SCENARIO_TRACKER_MODULE.BlocksFrame.slidingAction = "OUT";
+	SLIDE_OUT_DATA.startHeight = ScenarioStageBlock.height;
 	ObjectiveTracker_SlideBlock(SCENARIO_TRACKER_MODULE.BlocksFrame, SLIDE_OUT_DATA);
+end
+
+function ScenarioBlocksFrame_Hide()
+	SCENARIO_TRACKER_MODULE.BlocksFrame.currentStage = nil;
+	SCENARIO_TRACKER_MODULE.BlocksFrame.scenarioName = nil;	
+	SCENARIO_TRACKER_MODULE.BlocksFrame:SetVerticalScroll(0);
+	SCENARIO_TRACKER_MODULE.BlocksFrame:Hide();
 end
 
 -- *****************************************************************************************************
@@ -111,7 +124,7 @@ function ScenarioBlocksFrame_OnLoad(self)
 	ScenarioChallengeModeBlock.height = ScenarioChallengeModeBlock:GetHeight();
 	ScenarioProvingGroundsBlock.module = SCENARIO_TRACKER_MODULE;
 	ScenarioProvingGroundsBlock.height = ScenarioProvingGroundsBlock:GetHeight();
-	
+
 	SCENARIO_TRACKER_MODULE.BlocksFrame = self;
 	
 	self:SetWidth(OBJECTIVE_TRACKER_LINE_WIDTH);
@@ -137,9 +150,35 @@ function ScenarioBlocksFrame_OnEvent(self, event, ...)
 		ScenarioProvingGroundsBlock.Score:SetText(score);
 	elseif (event == "SCENARIO_COMPLETED") then
 		local xp, money = ...;
-		if( xp > 0 or money > 0 ) then
+		if( ( xp > 0 and UnitLevel("player") < MAX_PLAYER_LEVEL ) or money > 0 ) then
 			ScenarioObjectiveTracker_AnimateReward( xp, money );
 		end
+	end
+end
+
+function ScenarioObjectiveStageBlock_OnEnter(self)
+	GameTooltip:SetOwner(self, "ANCHOR_NONE");
+	GameTooltip:ClearAllPoints();
+	GameTooltip:SetPoint("RIGHT", self, "LEFT", 0, 0);
+	local _, currentStage, numStages, flags, _, _, _, xp, money = C_Scenario.GetInfo();
+	local name, description = C_Scenario.GetStepInfo();
+	if( name and bit.band(flags, SCENARIO_FLAG_SUPRESS_STAGE_TEXT) == SCENARIO_FLAG_SUPRESS_STAGE_TEXT) then
+	  GameTooltip:SetText(name, 1, 0.914, 0.682, 1);
+	  GameTooltip:AddLine(description, 1, 1, 1, true);
+	  GameTooltip:AddLine(" ");
+	  if ( xp > 0 and UnitLevel("player") < MAX_PLAYER_LEVEL ) then
+		GameTooltip:AddLine(string.format(BONUS_OBJECTIVE_EXPERIENCE_FORMAT, xp), 1, 1, 1);
+	  end
+	  if ( money > 0 ) then
+		SetTooltipMoney(GameTooltip, money, nil);
+	  end
+	  GameTooltip:Show();
+	elseif( currentStage <= numStages ) then
+	  GameTooltip:SetText(string.format(SCENARIO_STAGE_STATUS, currentStage, numStages), 1, 0.914, 0.682, 1);
+	  GameTooltip:AddLine(name, 1, 0.831, 0.380, true);
+	  GameTooltip:AddLine(" ");
+	  GameTooltip:AddLine(description, 1, 1, 1, true);
+	  GameTooltip:Show();
 	end
 end
 
@@ -211,7 +250,7 @@ function ScenarioObjectiveTracker_AnimateReward(xp, money)
 	rewardsFrame:Show();
 	rewardsFrame:SetScale(0.9);
 	local rewards = {};
-	if( xp > 0 ) then
+	if( xp > 0 and UnitLevel("player") < MAX_PLAYER_LEVEL ) then
 		local t = {};
 		t.label = xp;
 		t.texture = "Interface\\Icons\\XP_Icon";
@@ -250,6 +289,9 @@ function ScenarioObjectiveTracker_AnimateReward(xp, money)
 		rewardItem.Label:SetText(rewardData.label);
 		rewardItem.ItemIcon:SetTexture(rewardData.texture);
 		rewardItem:Show();
+		if( rewardItem.Anim:IsPlaying() ) then
+			rewardItem.Anim:Stop();
+		end
 		rewardItem.Anim:Play();
 	end
 	-- hide unused reward items
@@ -260,18 +302,7 @@ end
 
 function ScenarioObjectiveTracker_OnAnimateRewardDone(self)
 	local rewardsFrame = ObjectiveTrackerScenarioRewardsFrame;
-	-- kill anims
-	for i = 1, #rewardsFrame.Rewards do
-		rewardsFrame.Rewards[i].Anim:Stop();
-	end
 	rewardsFrame:Hide();
-	
-	local scenarioName, currentStage, numStages, flags, _, _, _, _, _, completed = C_Scenario.GetInfo();
-	if ( currentStage > numStages ) then
-		ScenarioBlocksFrame_SlideOut();
-	else
-		ObjectiveTracker_Update(OBJECTIVE_TRACKER_UPDATE_SCENARIO);
-	end
 end
 
 -- *****************************************************************************************************
@@ -399,17 +430,17 @@ function Scenario_ProvingGrounds_ShowBlock(timerID, elapsedTime, duration, medal
 		block.Score:Hide();
 		block.WaveLabel:SetPoint("TOPLEFT", block.MedalIcon, "TOPRIGHT", 1, -4);
 		block.Wave:SetFormattedText(GENERIC_FRACTION_STRING, currWave, maxWave);
-		statusBar:SetPoint("CENTER", block, "CENTER", 22, -8);
+		statusBar:SetPoint("TOPLEFT", block.WaveLabel, "BOTTOMLEFT", -2, -6);
 	else
 		block.ScoreLabel:Show();
 		block.Score:Show();
 		block.WaveLabel:SetPoint("TOPLEFT", block.MedalIcon, "TOPRIGHT", 1, 4);
 		block.Wave:SetText(currWave);
-		statusBar:SetPoint("CENTER", block, "CENTER", 22, -17);
+		statusBar:SetPoint("TOPLEFT", block.ScoreLabel, "BOTTOMLEFT", -2, -6);
 	end
 
 	Scenario_ProvingGrounds_UpdateTime(block, elapsedTime);
-	block.CountdownAnim.timeLeft = nil;
+	ScenarioProvingGroundsBlockAnim.CountdownAnim.timeLeft = nil;
 
 	ScenarioTimer_Start(block, Scenario_ProvingGrounds_UpdateTime);
 	block:Show();
@@ -419,30 +450,31 @@ end
 
 function Scenario_ProvingGrounds_UpdateTime(block, elapsedTime)
 	local statusBar = block.StatusBar;
+	local anim = ScenarioProvingGroundsBlockAnim.CountdownAnim;
 	if ( elapsedTime < statusBar.duration ) then
 		statusBar:SetValue(statusBar.duration - elapsedTime);
 		statusBar.TimeLeft:SetText(GetTimeStringFromSeconds(statusBar.duration - elapsedTime));
 		
 		local timeLeft = statusBar.duration - elapsedTime;
-		local anim = block.CountdownAnim;
 		if (timeLeft <= 5) then
-			if (anim:IsPlaying()) then 
-				anim.timeLeft = timeLeft;
-			else
+			if (not anim:IsPlaying() and anim.cycles == 0) then 
 				anim:Play();
+				anim.cycles = 4; 
 			end
-		elseif (anim.timeLeft ~= nil) then
-			-- the time left never reaches 0 if there's another wave, but the animation always needs to get to 0
-			anim.timeLeft = 0; 
+		else
+			anim.cycles = 0;
 		end
+	else
+		anim.cycles = 0;
 	end
 end
 
 function Scenario_ProvingGrounds_CountdownAnim_OnFinished(self)
-	if ( self.timeLeft and self.timeLeft > 0 and self.timeLeft < 5 ) then
+	if ( self.cycles > 0 ) then
 		self:Play();
+		self.cycles = self.cycles - 1;
 	else
-		self.timeLeft = nil;
+		self.cycles = 0;
 	end
 end
 
@@ -451,30 +483,23 @@ end
 -- *****************************************************************************************************
 
 function SCENARIO_CONTENT_TRACKER_MODULE:StaticReanchor()
-	local scenarioName, currentStage, numStages, flags, _, _, _, xp, money, completed = C_Scenario.GetInfo();
+	local scenarioName, currentStage, numStages, flags, _, _, completed, xp, money = C_Scenario.GetInfo();
 	local rewardsFrame = ObjectiveTrackerScenarioRewardsFrame;
-	local scenarioName, currentStage, numStages, flags = C_Scenario.GetInfo();
-	if ( currentStage < 1 or currentStage > numStages ) then
-		if ( (xp == 0 and money == 0) or (completed and not rewardsFrame.Anim:IsPlaying()) ) then
-			ScenarioBlocksFrame.stage = nil;
-			ScenarioBlocksFrame:Hide();	
-			return;
-		end
+	if ( numStages == 0 ) then
+		ScenarioBlocksFrame_Hide();
+		return;
 	end
-	ObjectiveTracker_AddBlock(SCENARIO_TRACKER_MODULE.BlocksFrame);
+	if ( ScenarioBlocksFrame:IsShown() ) then
+		ObjectiveTracker_AddBlock(SCENARIO_TRACKER_MODULE.BlocksFrame);
+	end
 end
 
 function SCENARIO_CONTENT_TRACKER_MODULE:Update()
-	local scenarioName, currentStage, numStages, flags, _, _, _, xp, money, completed = C_Scenario.GetInfo();
+	local scenarioName, currentStage, numStages, flags, _, _, _, xp, money = C_Scenario.GetInfo();
 	local rewardsFrame = ObjectiveTrackerScenarioRewardsFrame;
-
-	if ( numStages == 0 or currentStage < 1 or currentStage > numStages ) then
-		-- we should finish at this point unless there are rewards
-		if ( (xp == 0 and money == 0) or (completed and not rewardsFrame.Anim:IsPlaying()) ) then
-			ScenarioBlocksFrame.stage = nil;
-			ScenarioBlocksFrame:Hide();
-			return;
-		end
+	if ( numStages == 0 ) then
+		ScenarioBlocksFrame_Hide();
+		return;
 	end
 	local BlocksFrame = SCENARIO_TRACKER_MODULE.BlocksFrame;	
 	local objectiveBlock = SCENARIO_TRACKER_MODULE:GetBlock();
@@ -500,23 +525,21 @@ function SCENARIO_CONTENT_TRACKER_MODULE:Update()
 	local inChallengeMode = bit.band(flags, SCENARIO_FLAG_CHALLENGE_MODE) == SCENARIO_FLAG_CHALLENGE_MODE;
 	local inProvingGrounds = bit.band(flags, SCENARIO_FLAG_PROVING_GROUNDS) == SCENARIO_FLAG_PROVING_GROUNDS;
 	local dungeonDisplay = bit.band(flags, SCENARIO_FLAG_USE_DUNGEON_DISPLAY) == SCENARIO_FLAG_USE_DUNGEON_DISPLAY;
+	local scenariocompleted = currentStage > numStages;
 
-	if ( inChallengeMode ) then
-		SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(stageName);
+	if ( scenariocompleted ) then
+		ObjectiveTracker_AddBlock(stageBlock);
+		ScenarioBlocksFrame_SetupStageBlock(scenariocompleted);
+		stageBlock:Show();
+	elseif ( inChallengeMode ) then
 		if ( ScenarioChallengeModeBlock.timerID ) then
 			ObjectiveTracker_AddBlock(ScenarioChallengeModeBlock);
 		end
 		stageBlock:Hide();
 	elseif ( ScenarioProvingGroundsBlock.timerID ) then
-		SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_PROVINGGROUNDS);
 		ObjectiveTracker_AddBlock(ScenarioProvingGroundsBlock);
 		stageBlock:Hide();
 	else
-		if ( inProvingGrounds ) then
-			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_PROVINGGROUNDS);
-		else
-			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_SCENARIO);
-		end
 		-- add the stage block
 		ObjectiveTracker_AddBlock(stageBlock);
 		stageBlock:Show();
@@ -545,12 +568,12 @@ function SCENARIO_CONTENT_TRACKER_MODULE:Update()
 					stageBlock.Stage:SetPoint("TOPLEFT", 15, -18);
 				end
 			end
-			BlocksFrame.scenarioName = scenarioName;
-			BlocksFrame.currentStage = currentStage;
 		end	
 	end
-
-	if ( not ScenarioProvingGroundsBlock.timerID ) then
+	BlocksFrame.scenarioName = scenarioName;
+	BlocksFrame.currentStage = currentStage;
+			
+	if ( not ScenarioProvingGroundsBlock.timerID and not scenariocompleted ) then
 		-- do the criteria
 		for criteriaIndex = 1, numCriteria do
 			local criteriaString, criteriaType, completed, quantity, totalQuantity, flags, assetID, quantityString, criteriaID, duration, elapsed = C_Scenario.GetCriteriaInfo(criteriaIndex);
@@ -605,10 +628,9 @@ function SCENARIO_CONTENT_TRACKER_MODULE:Update()
 				if ( currentStage == 1 ) then
 					ScenarioBlocksFrame_SlideIn();
 				else
-					if ( not ObjectiveTrackerScenarioRewardsFrame:IsShown() ) then
+					ScenarioBlocksFrame_SetupStageBlock(scenariocompleted);
+					if ( not scenariocompleted ) then
 						ScenarioBlocksFrame_SlideOut();
-					else
-						ScenarioBlocksFrame_SetSlideOutLook();
 					end
 				end
 			end
@@ -617,15 +639,18 @@ function SCENARIO_CONTENT_TRACKER_MODULE:Update()
 			if ( currentStage > 1 and currentStage <= numStages ) then
 				PlaySound("UI_Scenario_Stage_End");
 			end		
-		end
-		ObjectiveTracker_ReorganizeModules(true);
+		end	
+		-- header
+		if ( inChallengeMode ) then
+			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(scenarioName);
+		elseif ( inProvingGrounds or ScenarioProvingGroundsBlock.timerID ) then
+			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_PROVINGGROUNDS);
+		elseif( dungeonDisplay ) then
+			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_DUNGEON);
+		else
+			SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_SCENARIO);
+		end		
 	else
-		BlocksFrame:Hide();
-		ObjectiveTracker_ReorganizeModules(false);
-	end
-	
-	-- treat as dungeon
-	if( dungeonDisplay ) then
-		SCENARIO_CONTENT_TRACKER_MODULE.Header.Text:SetText(TRACKER_HEADER_DUNGEON);
+		ScenarioBlocksFrame_Hide();
 	end
 end

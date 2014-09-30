@@ -92,8 +92,6 @@ function LootFrame_OnEvent(self, event, ...)
 	elseif ( event == "LOOT_CLOSED" ) then
 		if( not self.AutoLootTable ) then
 			LootFrame_Close();
-		else
-			self.CloseRequest = true;
 		end
 		return;
 	elseif ( event == "OPEN_MASTER_LOOT_LIST" ) then
@@ -124,11 +122,7 @@ function LootFrame_OnUpdate(self, elapsed)
 				self.timeSinceUpdate = nil;
 				self.AutoLootTable = nil;
 				--close
-				if( self.CloseRequest )then
-					LootFrame_Close();
-				else
-					LootFrame_Update();
-				end
+				LootFrame_Close();
 			else
 				local numLootToShow = LOOTFRAME_NUMBUTTONS;
 				if ( self.numLootItems > LOOTFRAME_NUMBUTTONS ) then
@@ -270,10 +264,9 @@ function LootFrame_Update()
 end
 
 function LootFrame_InitAutoLootTable( self )
-	if( not self.AutoLootTable )then
-		self.AutoLootTable = GetLootInfo();
-		self.CloseRequest = nil;
-	end
+--	if( not self.AutoLootTable )then
+--		self.AutoLootTable = GetLootInfo();
+--	end
 end
 
 function LootFrame_Close()
@@ -667,7 +660,6 @@ function BonusRollFrame_OnEvent(self, event, ...)
 		self.rewardLink = rewardLink;
 		self.rewardQuantity = rewardQuantity;
 		self.rewardSpecID = rewardSpecID;
-		self.rewardSpecSex = rewardSpecSex;
 		self.StartRollAnim:Finish();
 	elseif ( event == "PLAYER_LOOT_SPEC_UPDATED" ) then
 		local specID = GetLootSpecialization();

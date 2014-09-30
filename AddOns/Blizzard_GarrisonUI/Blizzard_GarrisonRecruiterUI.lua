@@ -1,3 +1,15 @@
+
+StaticPopupDialogs["CONFIRM_RECRUIT_FOLLOWER"] = {
+	text = GARRISON_CONFIRM_RECRUIT_FOLLOWER,
+	button1 = YES,
+	button2 = NO,
+	OnAccept = function(self)
+		C_Garrison.RecruitFollower(self.data);
+	end,
+	timeout = 0,
+	hideOnEscape = 1
+};
+
 ----------------------------------
 --- GarrisonRecruiterFrame ---
 ----------------------------------
@@ -11,8 +23,8 @@ function GarrisonRecruiterFrame_OnLoad(self)
 	
 	self.onCloseCallback = GarrisonRecruiterFrame_OnClickClose;
 	self.Pick.categories ={};
-	local categoriesTable = C_Garrison.GetRecruiterAbilityCategories();
-	for index, category in pairs(categoriesTable)do
+	self.categoriesTable = C_Garrison.GetRecruiterAbilityCategories();
+	for index, category in pairs(self.categoriesTable)do
 		self.Pick.categories[category] = {
 			name = category,
 			entries = {}
@@ -21,7 +33,7 @@ function GarrisonRecruiterFrame_OnLoad(self)
 end
 
 function GarrisonRecruiterFrame_OnEvent(self, event, ...)
-	if( event == "GARRISON_MISSION_NPC_CLOSED" ) then
+	if( event == "GARRISON_RECRUITMENT_NPC_CLOSED" ) then
 		HideUIPanel(self);
 	elseif( event == "GARRISON_RECRUITMENT_READY" ) then
 		GarrisonRecruiterFrame_OnShow(self);
@@ -29,7 +41,7 @@ function GarrisonRecruiterFrame_OnEvent(self, event, ...)
 end
 
 function GarrisonRecruiterFrame_OnShow(self)
-	self:RegisterEvent("GARRISON_MISSION_NPC_CLOSED");
+	self:RegisterEvent("GARRISON_RECRUITMENT_NPC_CLOSED");
 	self:RegisterEvent("GARRISON_RECRUITMENT_READY");
 	SetPortraitTexture(self.PortraitTexture, "npc");
 	GarrisonRecruiterFrame.Pick:Hide();
@@ -38,19 +50,21 @@ function GarrisonRecruiterFrame_OnShow(self)
 	local followers = C_Garrison.GetAvailableRecruits();
 	if( #followers > 0 )then
 		-- display selection screen if we've already generated followers
+		self.keepRecruitmentNPCOpen = true;
 		HideUIPanel(self);
 		GarrisonRecruitSelectFrame_UpdateRecruits(false);
 		ShowUIPanel(GarrisonRecruitSelectFrame);
 	else
-		GarrisonRecruiterFrame_Show( C_Garrison.CanGenerateRecruits(), C_Garrison.IsAboveFollowerSoftCap(), C_Garrison.CanSetRecruitmentPreference() );
+		self.keepRecruitmentNPCOpen = nil;
+		GarrisonRecruiterFrame_Show( C_Garrison.CanGenerateRecruits(), C_Garrison.CanSetRecruitmentPreference() );
 	end
 end
 
-function GarrisonRecruiterFrame_Show( canRecruit, aboveFollowerCap, prefAvailable )
-	if( canRecruit and not aboveFollowerCap ) then
+function GarrisonRecruiterFrame_Show( canRecruit, prefAvailable )
+	if( canRecruit ) then
 		if( prefAvailable )then
 			local frame = GarrisonRecruiterFrame.Pick;
-			local ability, name, desc, icon = C_Garrison.GetRecruitmentPreferences()
+			local ability, name, desc, icon, id = C_Garrison.GetRecruitmentPreferences()
 			if( name ) then
 				if( ability ) then
 					frame.Radio1:SetChecked(true);
@@ -63,7 +77,7 @@ function GarrisonRecruiterFrame_Show( canRecruit, aboveFollowerCap, prefAvailabl
 					GarrisonRecruiterFrame_UpdateAbilityEntries(true);
 					frame.Title2:SetText(GARRISON_CHOOSE_TRAIT);
 				end
-				GarrisonRecruiterFrame_SetAbilityPreference ({name=name, description=desc, icon=icon});
+				GarrisonRecruiterFrame_SetAbilityPreference ({id=id, name=name, description=desc, icon=icon});
 			else
 				GarrisonRecruiterFrame_UpdateAbilityEntries(frame.Radio2:GetChecked());
 				GarrisonRecruiterFrame_SetAbilityPreference (frame.entries[1]);
@@ -73,21 +87,16 @@ function GarrisonRecruiterFrame_Show( canRecruit, aboveFollowerCap, prefAvailabl
 			GarrisonRecruiterFrame.Random:Show();
 		end
 	else
-		GarrisonRecruiterFrame_ShowUnavailableFrame(aboveFollowerCap);
+		GarrisonRecruiterFrame_ShowUnavailableFrame();
 	end
 end
 
-function GarrisonRecruiterFrame_ShowUnavailableFrame(aboveFollowerCap)
-	if ( aboveFollowerCap ) then
-		GarrisonRecruiterFrame.UnavailableFrame.Title:SetText(GARRISON_MAX_FOLLOWERS_CANNOT_RECRUIT);
-	else
-		GarrisonRecruiterFrame.UnavailableFrame.Title:SetText(GARRISON_RECRUIT_NEXT_WEEK);
-	end
+function GarrisonRecruiterFrame_ShowUnavailableFrame()
+	GarrisonRecruiterFrame.UnavailableFrame.Title:SetText(GARRISON_RECRUIT_NEXT_WEEK);	
 	GarrisonRecruiterFrame.UnavailableFrame:Show();
 end
 
 function GarrisonRecruiterFrame_OnClickClose(self)
-	C_Garrison.CloseRecruitmentNPC();
 	HideUIPanel(GarrisonRecruiterFrame);
 end
 
@@ -98,8 +107,14 @@ function GarrisonRecruiterFrame_OnHide(self)
 		local arg2 = (frame.Radio2:GetChecked() and frame.dropDownValue) or 0;
 		C_Garrison.SetRecruitmentPreferences(arg1, arg2);
 	end
-	self:UnregisterEvent("GARRISON_MISSION_NPC_CLOSED");
+	self:UnregisterEvent("GARRISON_RECRUITMENT_NPC_CLOSED");
 	self:UnregisterEvent("GARRISON_RECRUITMENT_READY");
+	
+	if ( not self.keepRecruitmentNPCOpen ) then
+		C_Garrison.CloseRecruitmentNPC();
+	else
+		self.keepRecruitmentNPCOpen = nil;
+	end
 end
 
 function GarrisonRecruiterType_OnClick( self )
@@ -116,8 +131,6 @@ function GarrisonRecruiterType_OnClick( self )
 		GarrisonRecruiterFrame_UpdateAbilityEntries(true);
 		frame.Title2:SetText(GARRISON_CHOOSE_TRAIT);
 	end
-	GarrisonRecruiterFrame_SetAbilityPreference (frame.entries[1]);
-	UIDropDownMenu_SetText(frame.ThreatDropDown, frame.entries[1].name);
 end
 
 function GarrisonRecruiterFrame_Init(self, level)
@@ -132,10 +145,11 @@ function GarrisonRecruiterFrame_Init(self, level)
 		info.tooltipText = nil;
 		info.hasArrow = true;
 		info.notCheckable = true;
-		info.func = CloseDropDownMenus;
-		for i, entry in pairs(frame.categories) do
+		info.func = function() CloseDropDownMenus() end;
+		for i, category in pairs(GarrisonRecruiterFrame.categoriesTable) do
+			local entry = frame.categories[category];
 			if( #entry.entries > 0 ) then
-				entry.id = i;
+				entry.id = category;
 				GarrisonRecruiterFrame_AddEntryToDropdown(entry, info);
 			end
 		end
@@ -171,6 +185,9 @@ function GarrisonRecruiterFrame_Init(self, level)
 			end
 			for _, entry in pairs(category.entries) do
 				info.arg1 = entry;
+				info.tooltipOnButton = 1;
+				info.tooltipTitle = entry.name;
+				info.tooltipText = entry.description;
 				GarrisonRecruiterFrame_AddEntryToDropdown(entry, info, level);
 			end
 		end
@@ -179,6 +196,7 @@ end
 
 function GarrisonRecruiterFrame_GenerateRecruits(ability, trait)
 	C_Garrison.GenerateRecruits(ability, trait);
+	GarrisonRecruiterFrame.keepRecruitmentNPCOpen = true;
 	HideUIPanel(GarrisonRecruiterFrame);
 	
 	GarrisonRecruitSelectFrame_UpdateRecruits(true);
@@ -200,14 +218,18 @@ end
 function GarrisonRecruiterFrame_UpdateAbilityEntries( isTrait )
 	local frame = GarrisonRecruiterFrame.Pick;
 	C_Garrison.GetRecruiterAbilityList(isTrait, frame.entries);
-	--frame.categories = {};
+	for _, category in pairs( frame.categories ) do
+		category.entries = {};
+	end
 	if( isTrait ) then
 		-- sort abilities into categories
 		local categoryless = {};
-		for _, category in pairs( frame.categories ) do
-			category.entries = {};
-		end
+		local firstEntry = nil;
 		for _, entry in pairs( frame.entries ) do
+			if( not firstEntry ) then
+				firstEntry = entry;
+			end
+				
 			local category = entry.category;
 			if( category and frame.categories[category]) then
 				table.insert(frame.categories[category].entries, entry);
@@ -216,48 +238,52 @@ function GarrisonRecruiterFrame_UpdateAbilityEntries( isTrait )
 			end
 		end
 		frame.entries = categoryless;
+		
+		GarrisonRecruiterFrame_SetAbilityPreference(firstEntry)
+	else
+		GarrisonRecruiterFrame_SetAbilityPreference(frame.entries[1])
 	end
 end
 
 -- called when setting recruiter ability/trait, but up to the client
 function GarrisonRecruiterFrame_SetAbilityPreference(data)
-	local frame = GarrisonRecruiterFrame.Pick;
-	frame.dropDownValue = data.id;
-	frame.dropDownName = data.name;
-	
-	frame.Counter.Title:SetText(data.name);
-	frame.Counter.Description:SetText(data.description);
-	frame.Counter.Icon:SetTexture(data.icon);
-	frame.Counter.Icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask");
-	
-	UIDropDownMenu_SetText(frame.ThreatDropDown, data.name);
+	if( data ) then
+		local frame = GarrisonRecruiterFrame.Pick;
+		frame.dropDownValue = data.id;
+		frame.dropDownName = data.name;
+		
+		frame.Counter.Title:SetText(data.name);
+		frame.Counter.Description:SetText(data.description);
+		frame.Counter.Icon:SetTexture(data.icon);
+		frame.Counter.Icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask");
+		
+		UIDropDownMenu_SetText(frame.ThreatDropDown, data.name);
+	end
 end
 
 ----------------------------------
 --- GarrisonRecruitSelectFrame ---
 ----------------------------------
 function GarrisonRecruitSelectFrame_OnLoad(self)
+	GarrisonFollowerList_OnLoad(self);
 	self:RegisterEvent("GARRISON_RECRUIT_FOLLOWER_RESULT");
 	self:RegisterEvent("GARRISON_RECRUITMENT_FOLLOWERS_GENERATED");
 end
 
 function GarrisonRecruitSelectFrame_OnEvent(self, event, ...)
+	GarrisonFollowerList_OnEvent(self, event, ...);
 	if(event == "GARRISON_RECRUIT_FOLLOWER_RESULT")then
 		-- post event for recruiting follower
-		C_Garrison.CloseRecruitmentNPC();
 		HideUIPanel(GarrisonRecruitSelectFrame);
 	elseif(event == "GARRISON_RECRUITMENT_FOLLOWERS_GENERATED")then
 		GarrisonRecruitSelectFrame_UpdateRecruits( false )
-	elseif(event == "GARRISON_MISSION_NPC_CLOSED")then
+	elseif(event == "GARRISON_RECRUITMENT_NPC_CLOSED")then
 		HideUIPanel(GarrisonRecruitSelectFrame);
 	end
 end
 
 function GarrisonRecruitSelectFrame_OnShow(self)
-	self:RegisterEvent("GARRISON_MISSION_NPC_CLOSED");
-	-- re-parent follower list to garrison recruit screen
-	GarrisonMissionFrame.FollowerList:SetParent(self);
-	GarrisonMissionFrame.FollowerList:Show();
+	self:RegisterEvent("GARRISON_RECRUITMENT_NPC_CLOSED");
 end
 
 function GarrisonRecruitSelectFrame_UpdateRecruits( waiting )
@@ -286,15 +312,20 @@ function GarrisonRecruitSelectFrame_UpdateRecruits( waiting )
 			frame.PortraitFrame.Level:SetText(follower.level);
 			SetPortraitTexture(frame.PortraitFrame.Portrait, follower.displayID);
 			GarrisonMission_SetFollowerModel(frame.Model, follower.followerID, follower.displayID);
-			frame.Model:SetHeightFactor(follower.height * RECRUIT_HEIGHT_MULTUPLER);
-			frame.Model:InitializeCamera(follower.scale * RECRUIT_SCALE_MULTIPLIER);
+			if (follower.displayHeight) then
+				frame.Model:SetHeightFactor(follower.displayHeight);
+			end
+			if (follower.displayScale) then
+				frame.Model:InitializeCamera(follower.displayScale);
+			end	
 			frame.Model:Show();
 			frame.Class:SetAtlas(follower.classAtlas);
 			
 			local color = ITEM_QUALITY_COLORS[follower.quality];
 			frame.Name:SetVertexColor(color.r, color.g, color.b);
 			frame.PortraitFrame.LevelBorder:SetVertexColor(color.r, color.g, color.b);
-			
+			frame.PortraitFrame.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b);
+
 			local abilities = C_Garrison.GetRecruitAbilities(i);
 			local abilityIndex = 0;
 			local traitIndex = 0;
@@ -319,10 +350,10 @@ function GarrisonRecruitSelectFrame_UpdateRecruits( waiting )
 				end
 				
 				if(uiEntry)then
+					uiEntry.abilityID = ability.id;
 					uiEntry:Show();
 					uiEntry.Icon:SetTexture(ability.icon);
 					uiEntry.Name:SetText(ability.name);
-					uiEntry.tooltip = ability.description;
 				end
 			end
 
@@ -364,13 +395,19 @@ function GarrisonRecruitSelectFrame_UpdateRecruits( waiting )
 end
 
 function GarrisonRecruitSelectFrame_OnHide(self)
-	self:UnregisterEvent("GARRISON_MISSION_NPC_CLOSED");
+	self:UnregisterEvent("GARRISON_RECRUITMENT_NPC_CLOSED");
 	C_Garrison.CloseRecruitmentNPC();
-	GarrisonMissionFrame.FollowerList:SetParent(GarrisonMissionFrame);
+	StaticPopup_Hide("CONFIRM_RECRUIT_FOLLOWER");
+	StaticPopup_Hide("DEACTIVATE_FOLLOWER");
+	StaticPopup_Hide("ACTIVATE_FOLLOWER");
 end
 
 function GarrisonRecruiterFrame_HireRecruit(self)
-	C_Garrison.RecruitFollower(self:GetParent():GetID());
+	local followerIndex = self:GetParent():GetID();
+	local followers = C_Garrison.GetAvailableRecruits();
+	local followerName = followers[followerIndex].name;
+	local color = ITEM_QUALITY_COLORS[followers[followerIndex].quality].hex;
+	StaticPopup_Show("CONFIRM_RECRUIT_FOLLOWER", color..followerName..FONT_COLOR_CODE_CLOSE, nil, followerIndex);
 end
 
 -- add abilty/trait to recruiter drop down

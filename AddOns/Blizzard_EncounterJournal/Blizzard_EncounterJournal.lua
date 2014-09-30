@@ -66,10 +66,10 @@ local EJ_DIFFICULTIES =
 	{ size = "10", prefix = PLAYER_DIFFICULTY2, difficultyID = 5 },
 	{ size = "25", prefix = PLAYER_DIFFICULTY1, difficultyID = 4 },
 	{ size = "25", prefix = PLAYER_DIFFICULTY2, difficultyID = 6 },
-	{ size = "10-25", prefix = PLAYER_DIFFICULTY3, difficultyID = 17 },
-	{ size = "10-30", prefix = PLAYER_DIFFICULTY1, difficultyID = 14 },
-	{ size = "10-30", prefix = PLAYER_DIFFICULTY2, difficultyID = 15 },
-	{ size = "20", prefix = PLAYER_DIFFICULTY6, difficultyID = 16 },
+	{ prefix = PLAYER_DIFFICULTY3, difficultyID = 17 },
+	{ prefix = PLAYER_DIFFICULTY1, difficultyID = 14 },
+	{ prefix = PLAYER_DIFFICULTY2, difficultyID = 15 },
+	{ prefix = PLAYER_DIFFICULTY6, difficultyID = 16 },
 }
 
 local EJ_TIER_DATA =
@@ -79,7 +79,7 @@ local EJ_TIER_DATA =
 	[3] = { backgroundTexture = "Interface\\EncounterJournal\\UI-EJ-WrathoftheLichKing", r = 0.2, g = 0.8, b = 1.0 },
 	[4] = { backgroundTexture = "Interface\\EncounterJournal\\UI-EJ-Cataclysm", r = 1.0, g = 0.4, b = 0.0 },
 	[5] = { backgroundTexture = "Interface\\EncounterJournal\\UI-EJ-MistsofPandaria", r = 0.0, g = 0.6, b = 0.2 },
-	[6] = { backgroundTexture = "Interface\\EncounterJournal\\UI-EJ-Classic", r = 1.0, g = 0.8, b = 0.0 },
+	[6] = { backgroundTexture = "Interface\\ENCOUNTERJOURNAL\\UI-EJ-WarlordsofDraenor", r = 0.82, g = 0.55, b = 0.1 },
 }
 
 
@@ -122,10 +122,6 @@ function EncounterJournal_OnLoad(self)
 
 	EJ_SetDifficulty(EJ_DIFFICULTIES[1].difficultyID);	-- default to 5-man normal
 	
-	EncounterJournal.searchBox.oldEditLost = EncounterJournal.searchBox:GetScript("OnEditFocusLost");
-	EncounterJournal.searchBox:SetScript("OnEditFocusLost", function(self) self:oldEditLost(); EncounterJournal_HideSearchPreview(); end);
-	EncounterJournal.searchBox.clearFunc = EncounterJournal_ClearSearch;
-	
 	
 	local homeData = {
 		name = HOME,
@@ -145,8 +141,6 @@ function EncounterJournal_OnLoad(self)
 	UIDropDownMenu_Initialize(self.encounter.info.lootScroll.lootFilter, EncounterJournal_InitLootFilter, "MENU");
 end
 
-local worldBossInstanceIDs = { 322 }
-
 function EncounterJournal_OnShow(self)
 	UpdateMicroButtons();
 	PlaySound("igCharacterInfoOpen");
@@ -155,19 +149,14 @@ function EncounterJournal_OnShow(self)
 	--automatically navigate to the current dungeon if you are in one;
 	local instanceID = EJ_GetCurrentInstance();
 	local _, _, difficultyID = GetInstanceInfo();
-	if instanceID ~= 0 and (instanceID ~= EncounterJournal.lastInstance or difficultyID ~= EncounterJournal.difficultyID) then
+	if instanceID ~= 0 and (instanceID ~= EncounterJournal.lastInstance or EJ_GetDifficulty() ~= difficultyID) then
 		EncounterJournal_ListInstances();
 		EncounterJournal_DisplayInstance(instanceID);
 		EncounterJournal.lastInstance = instanceID;
-		EncounterJournal.difficultyID = difficultyID;
-		if ( difficultyID == 0 ) then
-			if tContains( worldBossInstanceIDs, instanceID ) then
-				difficultyID = EJ_DIFFICULTIES[6].difficultyID;     -- default to 25-man normal for world bosses
-			else
-				difficultyID = EJ_DIFFICULTIES[1].difficultyID; 	-- default to 5-man normal
-			end
+		-- try to set difficulty to current instance difficulty
+		if ( EJ_IsValidInstanceDifficulty(difficultyID) ) then
+			EJ_SetDifficulty(difficultyID);
 		end
-		EJ_SetDifficulty(difficultyID);
 	elseif ( EncounterJournal.queuedPortraitUpdate ) then
 		-- fixes portraits when switching between fullscreen and windowed mode
 		EncounterJournal_UpdatePortraits();
@@ -218,7 +207,11 @@ function EncounterJournal_OnEvent(self, event, ...)
 		local newDifficultyID = ...;	
 		for _, entry in pairs(EJ_DIFFICULTIES) do
 			if entry.difficultyID == newDifficultyID then
-				EncounterJournal.encounter.info.difficulty:SetFormattedText(ENCOUNTER_JOURNAL_DIFF_TEXT, entry.size, entry.prefix);
+				if (entry.size) then
+					EncounterJournal.encounter.info.difficulty:SetFormattedText(ENCOUNTER_JOURNAL_DIFF_TEXT, entry.size, entry.prefix);
+				else
+					EncounterJournal.encounter.info.difficulty:SetText(entry.prefix);
+				end
 				EncounterJournal_Refresh();
 				break;
 			end
@@ -443,7 +436,7 @@ function EncounterJournal_DisplayInstance(instanceID, noButton)
 		bossIndex = bossIndex + 1;
 		name, description, bossID, _, link = EJ_GetEncounterInfoByIndex(bossIndex);
 	end
-	
+
 	--disable model tab and abilities tab, no boss selected
 	EncounterJournal.encounter.info.modelTab:Disable();
 	EncounterJournal.encounter.info.modelTab:GetDisabledTexture():SetDesaturated(true);
@@ -474,7 +467,7 @@ function EncounterJournal_DisplayInstance(instanceID, noButton)
 	self.info.lootScroll:Hide();
 	self.info.rightShadow:Hide();
 	
-	if (self.info.tab < 4) then
+	if (self.info.tab < 3) then
 		self.info[EJ_Tabs[self.info.tab].button]:Click()
 	else
 		self.info.overviewTab:Click();
@@ -517,21 +510,19 @@ function EncounterJournal_DisplayEncounter(encounterID, noButton)
 	if (EncounterJournal_CheckForOverview(rootSectionID)) then
 		local _, overviewDescription = EJ_GetSectionInfo(rootSectionID);
 		self.overviewFrame.loreDescription:SetHeight(0);
-		self.overviewFrame.loreDescription:SetText(description);
 		self.overviewFrame.loreDescription:SetWidth(self.overviewFrame:GetWidth() - 5);
+		self.overviewFrame.loreDescription:SetText(description);
 		self.overviewFrame.overviewDescription:SetWidth(self.overviewFrame:GetWidth() - 5);
 		self.overviewFrame.overviewDescription.Text:SetWidth(self.overviewFrame:GetWidth() - 5);
 		EncounterJournal_SetBullets(self.overviewFrame.overviewDescription, overviewDescription, false);
 		local bulletHeight = 0;
-		if (self.overviewFrame.Bullets) then
+		if (self.overviewFrame.Bullets and #self.overviewFrame.Bullets > 0) then
 			for i = 1, #self.overviewFrame.Bullets do
-				if (i == 1) then
-					local bullet = self.overviewFrame.Bullets[i];
-					bullet:ClearAllPoints();
-					bullet:SetPoint("TOPLEFT", self.overviewFrame.overviewDescription, "BOTTOMLEFT", 0, -9);
-				end
 				bulletHeight = bulletHeight + self.overviewFrame.Bullets[i]:GetHeight();
 			end
+			local bullet = self.overviewFrame.Bullets[1];
+			bullet:ClearAllPoints();
+			bullet:SetPoint("TOPLEFT", self.overviewFrame.overviewDescription, "BOTTOMLEFT", 0, -9);
 		end
 		self.overviewFrame.descriptionHeight = self.overviewFrame.loreDescription:GetHeight() + self.overviewFrame.overviewDescription:GetHeight() + bulletHeight + 42;
 		self.overviewFrame.rootOverviewSectionID = rootSectionID;
@@ -539,8 +530,8 @@ function EncounterJournal_DisplayEncounter(encounterID, noButton)
 		overviewFound = true;
 	end
 	
-	self.infoFrame.description:SetText(description);
 	self.infoFrame.description:SetWidth(self.infoFrame:GetWidth() -5);
+	self.infoFrame.description:SetText(description);
 	self.infoFrame.descriptionHeight = self.infoFrame.description:GetHeight();
 	
 	self.infoFrame.encounterID = encounterID;
@@ -649,6 +640,11 @@ function EncounterJournal_DisplayCreature(self)
 		EncounterJournal.encounter.info.model.modelDisplayId:Show();
 		EncounterJournal.encounter.info.model.modelNameLabel:Show();
 		EncounterJournal.encounter.info.model.modelDisplayIdLabel:Show();
+		if (EncounterJournal.encounter.info.model.modelName:IsTruncated()) then
+			local pos = string.find(name, "\\[^\\]*$");
+			name = name:sub(1, pos - 1) .. "\\\n" .. name:sub(pos + 1);
+			EncounterJournal.encounter.info.model.modelName:SetText(name);
+		end
 	else
 		EncounterJournal.encounter.info.model.modelName:Hide();
 		EncounterJournal.encounter.info.model.modelDisplayId:Hide();
@@ -732,7 +728,7 @@ end
 
 function EncounterJournal_SetBullets(object, description, hideBullets)
 	local parent = object:GetParent();
-
+	
 	if (not string.find(description, "\$bullet;")) then
 		object.Text:SetText(description);
 		object.textString = description;
@@ -755,16 +751,15 @@ function EncounterJournal_SetBullets(object, description, hideBullets)
 	end
 
 	local k = 1;
+	local skipped = 0;
 	for j = 1,#bullets do
 		local text = bullets[j];
 		if (text and text ~= "") then
 			local bullet;
-			if (not parent.Bullets) then
-				parent.Bullets = {};
-			end
-			bullet = parent.Bullets[k];
+			bullet = parent.Bullets and parent.Bullets[k];
 			if (not bullet) then
-				if (parent.BulletCache) then
+				if (parent.BulletCache and #parent.BulletCache > 0) then
+					-- We only need to check for BulletCache because the BulletCache is created when we clean the bullets, so the BulletCache existing also means the Bullets exist.
 					parent.Bullets[k] = tremove(parent.BulletCache);
 					bullet = parent.Bullets[k];
 				else
@@ -784,7 +779,9 @@ function EncounterJournal_SetBullets(object, description, hideBullets)
 				bullet:SetPoint("TOP", parent.Bullets[k-1], "BOTTOM", 0, 0);
 			end
 			bullet.Text:SetText(text);
-			bullet:SetHeight(bullet.Text:GetContentHeight());
+			if (bullet.Text:GetContentHeight() ~= 0) then
+				bullet:SetHeight(bullet.Text:GetContentHeight());
+			end
 
 			if (hideBullets) then
 				bullet:Hide();
@@ -792,10 +789,12 @@ function EncounterJournal_SetBullets(object, description, hideBullets)
 				bullet:Show();
 			end
 			k = k + 1;
+		else
+			skipped = skipped + 1;
 		end
 	end
 
-	EncounterJournal_CleanBullets(parent, #bullets + 1);
+	EncounterJournal_CleanBullets(parent, (#bullets - skipped) + 1);
 end
 
 function EncounterJournal_SetDescriptionWithBullets(infoHeader, description)
@@ -813,6 +812,7 @@ function EncounterJournal_SetDescriptionWithBullets(infoHeader, description)
 end
 
 function EncounterJournal_SetUpOverview(self, role, index)
+	local infoHeader;
 	if not self.overviews[index] then -- create a new header;
 		infoHeader = CreateFrame("FRAME", "EncounterJournalOverviewInfoHeader"..index, EncounterJournal.encounter.overviewFrame, "EncounterInfoTemplate");
 		infoHeader.description:Hide();
@@ -858,7 +858,7 @@ function EncounterJournal_SetUpOverview(self, role, index)
 	end
 
 	wipe(infoHeader.Bullets);
-	local flag1, title, description, link;
+	local title, description, siblingID, link, flag1;
 	
 	local _, _, _, _, _, _, nextSectionID =  EJ_GetSectionInfo(self.rootOverviewSectionID);
 
@@ -871,6 +871,7 @@ function EncounterJournal_SetUpOverview(self, role, index)
 	end
 
 	if (not title) then
+		infoHeader:Hide();
 		return;
 	end
 	
@@ -956,7 +957,12 @@ function EncounterJournal_ToggleHeaders(self, doNotShift)
 				local overview = EncounterJournal.encounter.overviewFrame.overviews[self.overviewIndex + 1];
 
 				if (overview) then
-					overview:SetPoint("TOPLEFT", self.Bullets[#self.Bullets], "BOTTOMLEFT", -13, -18);
+					if (self.Bullets and #self.Bullets > 0) then
+						overview:SetPoint("TOPLEFT", self.Bullets[#self.Bullets], "BOTTOMLEFT", -13, -18);
+					else
+						local yoffset = -18 - self:GetHeight();
+						overview:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, yoffset);
+					end
 				end
 				EncounterJournal_UpdateButtonState(self.button);
 			end
@@ -1501,7 +1507,7 @@ function EncounterJournal_SetTooltip(link)
 		end
 	end
 
-	GameTooltip:SetHyperlink(link, specID);
+	GameTooltip:SetHyperlink(link, classID, specID);
 end
 
 function EncounterJournal_SetFlagIcon(texture, index)
@@ -1677,10 +1683,12 @@ end
 
 
 function EncounterJournal_OnSearchTextChanged(self)
+	SearchBoxTemplate_OnTextChanged(self);
+
 	local text = self:GetText();
 	EncounterJournal_HideSearchPreview();
 		
-	if strlen(text) < EJ_MIN_CHARACTER_SEARCH or text == SEARCH then
+	if strlen(text) < EJ_MIN_CHARACTER_SEARCH then
 		EJ_ClearSearch();
 		EncounterJournal.searchResults:Hide();
 		return;
@@ -1722,6 +1730,10 @@ function EncounterJournal_OnSearchTextChanged(self)
 	end
 end
 
+function EncounterJournal_OnSearchFocusLost(self)
+	SearchBoxTemplate_OnEditFocusLost(self);
+	EncounterJournal_HideSearchPreview();
+end
 
 function EncounterJournal_OpenJournalLink(tag, jtype, id, difficultyID)
 	jtype = tonumber(jtype);
@@ -1785,7 +1797,11 @@ function EncounterJournal_DifficultyInit(self, level)
 		local entry = EJ_DIFFICULTIES[i];
 		if EJ_IsValidInstanceDifficulty(entry.difficultyID) then
 			info.func = EncounterJournal_SelectDifficulty;
-			info.text = string.format(ENCOUNTER_JOURNAL_DIFF_TEXT, entry.size, entry.prefix);
+			if (entry.size) then
+				info.text = string.format(ENCOUNTER_JOURNAL_DIFF_TEXT, entry.size, entry.prefix);
+			else
+				info.text = entry.prefix;
+			end
 			info.arg1 = entry.difficultyID;
 			info.checked = currDifficulty == entry.difficultyID;
 			UIDropDownMenu_AddButton(info);
@@ -1972,6 +1988,10 @@ end
 function EJNAV_SelectInstance(self, index, navBar)
 	local showRaid = not EncounterJournal.instanceSelect.raidsTab:IsEnabled();
 	local instanceID = EJ_GetInstanceByIndex(index, showRaid);
+	
+	--Clear any previous selection.
+	NavBar_Reset(navBar);
+	
 	EncounterJournal_DisplayInstance(instanceID);
 end
 

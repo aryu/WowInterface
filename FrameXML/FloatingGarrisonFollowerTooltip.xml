@@ -21,7 +21,7 @@ UI.xsd">
 				</Texture>
 			</Layer>
 			<Layer level="ARTWORK">
-				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" text="Goblin Freeman">
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
 					<Size x="140" y="0"/>
 					<Anchors>
 						<Anchor point="LEFT" relativePoint="TOPLEFT" x="66" y="-20"/>
@@ -40,6 +40,12 @@ UI.xsd">
 					</Anchors>
 					<Color r="0.745" g="0.745" b="0.745" a="1"/>
 				</FontString>
+				<FontString parentKey="Quality" inherits="GameFontHighlightSmall" justifyH="LEFT">
+					<Size x="190" y="0"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" x="12" y="-72"/>
+					</Anchors>
+				</FontString>
 				<Texture parentKey="XPBar">
 					<Size x="180" y="4"/>
 					<Anchors>
@@ -55,13 +61,13 @@ UI.xsd">
 					<Color r="1" g="1" b="1" a="1"/>
 				</FontString>
 
-				<FontString parentKey="AbilitiesLabel" inherits="GameFontNormal" justifyH="LEFT" text="Abilities">
+				<FontString parentKey="AbilitiesLabel" inherits="GameFontNormal" justifyH="LEFT" text="ABILITIES">
 					<Anchors>
 						<Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="15" y="-85" />
 					</Anchors>
 				</FontString>
 
-				<FontString parentKey="TraitsLabel" inherits="GameFontNormal" justifyH="LEFT" text="Traits">
+				<FontString parentKey="TraitsLabel" inherits="GameFontNormal" justifyH="LEFT" text="GARRISON_TRAITS">
 					<Anchors>
 						<Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="15" y="-85" />
 					</Anchors>
@@ -78,7 +84,7 @@ UI.xsd">
 				</Anchors>
 				<Layers>
 					<Layer level="BORDER">
-						<Texture parentKey="PortraitRing" atlas="GarrMission_PortraitRing_Quality" useAtlasSize="true">
+						<Texture parentKey="PortraitRing" atlas="GarrMission_PortraitRing" useAtlasSize="true">
 							<Anchors>
 								<Anchor point="TOP"/>
 							</Anchors>
@@ -92,7 +98,14 @@ UI.xsd">
 							</Anchors>
 						</Texture>
 					</Layer>
-					<Layer level="BORDER" textureSubLevel="1">
+					<Layer level="BORDER" textureSubLevel="1">	
+						<Texture parentKey="PortraitRingQuality" atlas="GarrMission_PortraitRing_Quality" useAtlasSize="true">
+							<Anchors>
+								<Anchor point="TOP"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="BORDER" textureSubLevel="2">
 						<Texture parentKey="LevelBorder" atlas="GarrMission_PortraitRing_LevelBorder" useAtlasSize="true">
 							<Anchors>
 								<Anchor point="BOTTOM" y="-3"/>
@@ -100,7 +113,7 @@ UI.xsd">
 						</Texture>
 					</Layer>
 					<Layer level="ARTWORK">
-						<FontString parentKey="Level" inherits="GameFontHighlightSmall" justifyH="CENTER" text="95">
+						<FontString parentKey="Level" inherits="GameFontHighlightSmall" justifyH="CENTER">
 							<Anchors>
 								<Anchor point="CENTER" relativeKey="$parent.LevelBorder"/>
 							</Anchors>
@@ -138,31 +151,31 @@ UI.xsd">
 						<Anchor point="TOPLEFT" x="2"/>
 					</Anchors>
 				</Texture>
-				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" text="AbilityText">
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
 					<Anchors>
 						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" x="2"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" text="AbilityDescription" wordwrap="true">
+				<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="true">
 					<Size x="200" y="0"/>
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Details" inherits="GameFontHighlight" justifyH="LEFT" text="Details">
-					<Anchors>
-						<Anchor point="TOPLEFT" relativeKey="$parent.Description" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
-					</Anchors>
-					<Color r="0.698" g="0.941" b="1" a="1"/>
-				</FontString>
-
 				<Texture parentKey="CounterIcon">
 					<Size x="16" y="16"/>
 					<Anchors>
-						<Anchor point="LEFT" relativeKey="$parent.Details" relativePoint="RIGHT" x="5"/>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Description" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
 					</Anchors>
 				</Texture>
-
+				<FontString parentKey="Details" inherits="GameFontHighlight" justifyH="LEFT">
+					<Size x="176" y="0"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.CounterIcon" relativePoint="TOPRIGHT" x="8" y="-1"/>
+					</Anchors>
+					<Color r="0.698" g="0.941" b="1" a="1"/>
+				</FontString>
+				
 				<Texture atlas="GarrMission_EncounterAbilityBorder" useAtlasSize="true" parentKey="CounterIconBorder" hidden="true">
 					<Size x="15" y="15"/>
 					<Anchors>
@@ -218,31 +231,31 @@ UI.xsd">
 						<Anchor point="TOPLEFT" x="10" y="-10"/>
 					</Anchors>
 				</Texture>
-				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" text="AbilityText">
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
 					<Anchors>
 						<Anchor point="LEFT" relativeKey="$parent.Icon" relativePoint="RIGHT" x="6"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" text="AbilityDescription" wordwrap="true">
-					<Size x="200" y="0"/>
+				<FontString parentKey="Description" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="true">
+					<Size x="190" y="0"/>
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Details" inherits="GameFontHighlight" justifyH="LEFT" text="Details">
-					<Anchors>
-						<Anchor point="TOPLEFT" relativeKey="$parent.Description" relativePoint="BOTTOMLEFT" x="0" y="-10"/>
-					</Anchors>
-					<Color r="0.698" g="0.941" b="1" a="1"/>
-				</FontString>
-
 				<Texture parentKey="CounterIcon">
 					<Size x="16" y="16"/>
 					<Anchors>
-						<Anchor point="LEFT" relativeKey="$parent.Details" relativePoint="RIGHT" x="5"/>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Description" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
 					</Anchors>
 				</Texture>
-
+				<FontString parentKey="Details" inherits="GameFontHighlight" justifyH="LEFT">
+					<Size x="176" y="0"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.CounterIcon" relativePoint="TOPRIGHT" x="8" y="-1"/>
+					</Anchors>
+					<Color r="0.698" g="0.941" b="1" a="1"/>
+				</FontString>
+				
 				<Texture atlas="GarrMission_EncounterAbilityBorder" useAtlasSize="true" parentKey="CounterIconBorder" hidden="true">
 					<Size x="15" y="15"/>
 					<Anchors>
@@ -258,7 +271,7 @@ UI.xsd">
 
 
 	<Frame name="FloatingGarrisonFollowerAbilityTooltip" inherits="GarrisonFollowerAbilityTooltipTemplate" movable="true" toplevel="true">
-		<Size x="240" y="40"/>
+		<Size x="245" y="45"/>
 		<Anchors>
 			<Anchor point="BOTTOM" x="0" y="80"/>
 		</Anchors>
@@ -295,12 +308,12 @@ UI.xsd">
 		</Anchors>
 		<Layers>
 			<Layer level="ARTWORK">
-				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT" text="AbilityText">
+				<FontString parentKey="Name" inherits="GameFontNormal" justifyH="LEFT">
 					<Anchors>
 						<Anchor point="TOPLEFT" x="10" y="-10"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="FollowerRequirement" inherits="GameFontHighlight" justifyH="LEFT" text="Followers">
+				<FontString parentKey="FollowerRequirement" inherits="GameFontHighlight" justifyH="LEFT">
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" y="-3"/>
 					</Anchors>
@@ -310,7 +323,7 @@ UI.xsd">
 						<Anchor point="TOPLEFT" relativeKey="$parent.FollowerRequirement" relativePoint="BOTTOMLEFT" y="-12"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Rewards" inherits="GameFontHighlight" justifyH="LEFT" text="Rewards">
+				<FontString parentKey="Rewards" inherits="GameFontHighlight" justifyH="LEFT">
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.RewardsLabel" relativePoint="BOTTOMLEFT" />
 					</Anchors>

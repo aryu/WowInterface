@@ -34,7 +34,6 @@ StaticPopupDialogs["CONFIRM_JOIN_SOLO"] = {
 local DEFAULT_BG_TEXTURE = "Interface\\PVPFrame\\RandomPVPIcon";
 
 function PVPUIFrame_OnLoad(self)
-	RaiseFrameLevel(self.Shadows);
 	PanelTemplates_SetNumTabs(self, 2);
 
 	if (UnitFactionGroup("player") == PLAYER_FACTION_GROUP[0]) then
@@ -53,6 +52,8 @@ function PVPUIFrame_OnLoad(self)
 	self:RegisterEvent("PVP_ROLE_UPDATE");
 	self:RegisterEvent("UPDATE_BATTLEFIELD_STATUS");
 		
+	self.update = function(self, panel) return PVPQueueFrame_Update(PVPQueueFrame, panel); end
+	self.getSelection = function(self) return PVPQueueFrame_GetSelection(PVPQueueFrame); end
 	PVPQueueFrame_ShowFrame(HonorFrame);
 end
 
@@ -202,13 +203,11 @@ function PVPQueueFrame_OnEvent(self, event, ...)
 	elseif ( event == "PVP_REWARDS_UPDATE" ) then
 		PVPQueueFrame_UpdateCurrencies(self);
 	elseif ( event == "BATTLEFIELDS_SHOW" ) then
-		PVEFrame_ShowFrame("PVPUIFrame");
-
 		local isArena, bgID = ...;
 		if (isArena) then
-			PVPQueueFrame_ShowFrame(ConquestFrame);
+			PVEFrame_ShowFrame("PVPUIFrame", ConquestFrame);
 		else
-			PVPQueueFrame_ShowFrame(HonorFrame);
+			PVEFrame_ShowFrame("PVPUIFrame", HonorFrame);
 			HonorFrame_SetType("specific");
 			HonorFrameSpecificList_FindAndSelectBattleground(bgID);
 		end
@@ -257,6 +256,7 @@ function PVPQueueFrame_OnShow(self)
 	PVEFrame.TopTileStreaks:Show()
 end
 
+--WARNING - You probably want to call PVEFrame_ShowFrame("PVPUIFrame", "frameName") instead
 function PVPQueueFrame_ShowFrame(frame)
 	frame = frame or PVPQueueFrame.selection or HonorFrame;
 	-- hide the other frames and select the right button
@@ -331,6 +331,8 @@ function HonorFrame_OnLoad(self)
 	self:RegisterEvent("PVP_RATED_STATS_UPDATE");
 	self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("PVP_REWARDS_UPDATE");
+	self:RegisterEvent("LFG_LIST_ACTIVE_ENTRY_UPDATE");
+	self:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED");
 end
 
 function HonorFrame_OnEvent(self, event, ...)
@@ -346,6 +348,8 @@ function HonorFrame_OnEvent(self, event, ...)
 		HonorFrame_UpdateQueueButtons();
 	elseif ( event == "PVP_REWARDS_UPDATE" and self:IsShown() ) then
 		RequestRandomBattlegroundInstanceInfo();
+	elseif ( event == "LFG_LIST_ACTIVE_ENTRY_UPDATE" or event == "LFG_LIST_SEARCH_RESULT_UPDATED" ) then
+		HonorFrame_UpdateQueueButtons();
 	end
 end
 
@@ -415,6 +419,24 @@ function HonorFrame_UpdateQueueButtons()
 	else
 		HonorFrame.SoloQueueButton:Disable();
 		HonorFrame.GroupQueueButton:Disable();
+	end
+
+	--Disable the button if the person is active in LFGList
+	local lfgListDisabled;
+	if ( select(2,C_LFGList.GetNumApplications()) > 0 ) then
+		lfgListDisabled = CANNOT_DO_THIS_WITH_LFGLIST_APP;
+	elseif ( C_LFGList.GetActiveEntryInfo() ) then
+		lfgListDisabled = CANNOT_DO_THIS_WHILE_LFGLIST_LISTED;
+	end
+
+	if ( lfgListDisabled ) then
+		HonorFrame.SoloQueueButton:Disable();
+		HonorFrame.GroupQueueButton:Disable();
+		HonorFrame.SoloQueueButton.tooltip = lfgListDisabled;
+		HonorFrame.GroupQueueButton.tooltip = lfgListDisabled;
+	else
+		HonorFrame.SoloQueueButton.tooltip = nil;
+		HonorFrame.GroupQueueButton.tooltip = nil;
 	end
 end
 
@@ -665,18 +687,18 @@ function HonorFrameBonusFrame_Update()
 		if ( winConquestAmount and winConquestAmount > 0 ) then
 			rewardIndex = rewardIndex + 1;
 			local frame = HonorFrame.BonusFrame["BattlegroundReward"..rewardIndex];
-			frame:Show();
 			frame.currencyID = CONQUEST_CURRENCY;
 			frame.Icon:SetTexture("Interface\\PVPFrame\\PVPCurrency-Conquest-"..englishFaction);
 			frame.Amount:SetText(winConquestAmount);
+			frame:Show();
 		end
 		if ( winHonorAmount and winHonorAmount > 0 ) then
 			rewardIndex = rewardIndex + 1;
 			local frame = HonorFrame.BonusFrame["BattlegroundReward"..rewardIndex];
-			frame:Show();
 			frame.currencyID = HONOR_CURRENCY;
 			frame.Icon:SetTexture("Interface\\PVPFrame\\PVPCurrency-Honor-"..englishFaction);
 			frame.Amount:SetText(winHonorAmount);
+			frame:Show();
 		end
 		for i = rewardIndex + 1, 2 do
 			HonorFrame.BonusFrame["BattlegroundReward"..i]:Hide();
@@ -793,10 +815,16 @@ function ConquestFrame_OnLoad(self)
 	self:RegisterEvent("GROUP_ROSTER_UPDATE");
 	self:RegisterEvent("PVP_RATED_STATS_UPDATE");
 	self:RegisterEvent("PVP_REWARDS_UPDATE");
+	self:RegisterEvent("LFG_LIST_ACTIVE_ENTRY_UPDATE");
+	self:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED");
 end
 
 function ConquestFrame_OnEvent(self, event, ...)
-	ConquestFrame_Update(self);
+	if ( event == "LFG_LIST_ACTIVE_ENTRY_UPDATE" or event == "LFG_LIST_SEARCH_RESULT_UPDATED" ) then
+		ConquestFrame_UpdateJoinButton(self);
+	else
+		ConquestFrame_Update(self);
+	end
 end
 
 function ConquestFrame_OnShow(self)
@@ -837,8 +865,8 @@ function ConquestFrame_Update(self)
 end
 
 function ConquestFrame_UpdateConquestBar(self)
-	currencyName, currencyAmount = GetCurrencyInfo(CONQUEST_CURRENCY);
-	local pointsThisWeek, maxPointsThisWeek, tier2Quantity, tier2Limit, tier1Quantity, tier1Limit, randomPointsThisWeek, maxRandomPointsThisWeek, arenaReward, ratedBGReward = GetPVPRewards();
+	local currencyName = GetCurrencyInfo(CONQUEST_CURRENCY);
+	local pointsThisWeek, maxPointsThisWeek = GetPVPRewards();
 	-- just want a plain bar
 	CapProgressBar_Update(self.ConquestBar, 0, 0, nil, nil, pointsThisWeek, maxPointsThisWeek);
 	self.ConquestBar.label:SetFormattedText(CURRENCY_THIS_WEEK, currencyName);
@@ -847,6 +875,22 @@ end
 function ConquestFrame_UpdateJoinButton()
 	local button = ConquestFrame.JoinButton;
 	local groupSize = GetNumGroupMembers();
+
+	--Disable the button if the person is active in LFGList
+	local lfgListDisabled;
+	if ( select(2,C_LFGList.GetNumApplications()) > 0 ) then
+		lfgListDisabled = CANNOT_DO_THIS_WITH_LFGLIST_APP;
+	elseif ( C_LFGList.GetActiveEntryInfo() ) then
+		lfgListDisabled = CANNOT_DO_THIS_WHILE_LFGLIST_LISTED;
+	end
+
+	if ( lfgListDisabled ) then
+		button:Disable();
+		button.tooltip = lfgListDisabled;
+		return;
+	end
+
+	--Check whether they have a valid button selected
 	if ( ConquestFrame.selectedButton ) then
 		if ( groupSize == 0 ) then
 			button.tooltip = PVP_NO_QUEUE_GROUP;
@@ -873,9 +917,13 @@ function ConquestFrame_UpdateJoinButton()
 					end
 				end
 				if ( validGroup ) then
-					button.tooltip = nil;
-					button:Enable();
-					return;
+					if ( not GetSpecialization() ) then
+						button.tooltip = SPELL_FAILED_CUSTOM_ERROR_122;
+					else
+						button.tooltip = nil;
+						button:Enable();
+						return;
+					end
 				end
 			elseif ( neededSize > groupSize ) then
 				if ( ConquestFrame.selectedButton.id == RATED_BG_ID ) then
@@ -932,7 +980,20 @@ function ConquestFrame_ShowMaximumRewardsTooltip(self)
 	GameTooltip:AddLine(format(CURRENCY_RECEIVED_THIS_WEEK, currencyName), 1, 1, 1, true);
 	GameTooltip:AddLine(" ");
 
-	local pointsThisWeek, maxPointsThisWeek, tier2Quantity, tier2Limit, tier1Quantity, tier1Limit, randomPointsThisWeek, maxRandomPointsThisWeek, arenaReward, ratedBGReward = GetPVPRewards();
+	local pointsThisWeek, maxPointsThisWeek, bucket1Quantity, bucket1Limit, bucket2Quantity, bucket2Limit, bucket3Quantity, bucket3Limit, arenaReward, ratedBGReward = GetPVPRewards();
+	
+	-- Hack to make the system more understandable - Display Bucket 2 as a bonus pool that "overflows" into Bucket 1
+	-- (This hack is only valid when there are two buckets, since the underlying system doesn't actually work this way...)
+	if(bucket2Limit > bucket1Limit and bucket3Limit == 0) then
+		bucket2Limit = (bucket2Limit - bucket1Limit); -- Subtract to get the size of the "bonus pool"
+		if(bucket2Quantity > bucket2Limit) then
+			bucket1Quantity = bucket1Quantity + (bucket2Quantity-bucket2Limit); -- put extra in Bucket 1
+			if(bucket1Quantity > bucket1Limit) then
+				bucket1Quantity = bucket1Limit; -- clamp to be safe...
+			end
+			bucket2Quantity = bucket2Limit; -- remove extra from Bucket 2
+		end
+	end
 
 	local r, g, b = 1, 1, 1;
 	local capped;
@@ -940,28 +1001,34 @@ function ConquestFrame_ShowMaximumRewardsTooltip(self)
 		r, g, b = 0.5, 0.5, 0.5;
 		capped = true;
 	end
-	GameTooltip:AddDoubleLine(FROM_ALL_SOURCES, format(CURRENCY_WEEKLY_CAP_FRACTION, pointsThisWeek, maxPointsThisWeek), r, g, b, r, g, b);
+	GameTooltip:AddDoubleLine(FROM_TOTAL, format(CURRENCY_WEEKLY_CAP_FRACTION, pointsThisWeek, maxPointsThisWeek), r, g, b, r, g, b);
 
-	if ( capped or tier2Quantity >= tier2Limit ) then
-		r, g, b = 0.5, 0.5, 0.5;
-	else
-		r, g, b = 1, 1, 1;
+	if(bucket1Limit > 0) then
+		if ( capped or bucket1Quantity >= bucket1Limit ) then
+			r, g, b = 0.5, 0.5, 0.5;
+		else
+			r, g, b = 1, 1, 1;
+		end
+		GameTooltip:AddDoubleLine(" -"..FROM_ALL_SOURCES, format(CURRENCY_WEEKLY_CAP_FRACTION, bucket1Quantity, bucket1Limit), r, g, b, r, g, b);
 	end
-	GameTooltip:AddDoubleLine(" -"..FROM_RATEDBG, format(CURRENCY_WEEKLY_CAP_FRACTION, tier2Quantity, tier2Limit), r, g, b, r, g, b);
 
-	if ( capped or tier1Quantity >= tier1Limit ) then
-		r, g, b = 0.5, 0.5, 0.5;
-	else
-		r, g, b = 1, 1, 1;
+	if(bucket2Limit > 0) then
+		if ( capped or bucket2Quantity >= bucket2Limit ) then
+			r, g, b = 0.5, 0.5, 0.5;
+		else
+			r, g, b = 1, 1, 1;
+		end
+		GameTooltip:AddDoubleLine(" -"..FROM_ASHRAN, format(CURRENCY_WEEKLY_CAP_FRACTION, bucket2Quantity, bucket2Limit), r, g, b, r, g, b);
 	end
-	GameTooltip:AddDoubleLine(" -"..FROM_ARENA, format(CURRENCY_WEEKLY_CAP_FRACTION, tier1Quantity, tier1Limit), r, g, b, r, g, b);
 
-	if ( capped or randomPointsThisWeek >= maxRandomPointsThisWeek ) then
-		r, g, b = 0.5, 0.5, 0.5;
-	else
-		r, g, b = 1, 1, 1;
+	if(bucket3Limit > 0) then
+		if ( capped or bucket3Quantity >= bucket3Limit ) then
+			r, g, b = 0.5, 0.5, 0.5;
+		else
+			r, g, b = 1, 1, 1;
+		end
+		GameTooltip:AddDoubleLine(" -"..FROM_RATEDBG, format(CURRENCY_WEEKLY_CAP_FRACTION, bucket3Quantity, bucket3Limit), r, g, b, r, g, b);
 	end
-	GameTooltip:AddDoubleLine(" -"..FROM_RANDOMBG, format(CURRENCY_WEEKLY_CAP_FRACTION, randomPointsThisWeek, maxRandomPointsThisWeek), r, g, b, r, g, b);
 
 	GameTooltip:Show();
 end
@@ -985,7 +1052,7 @@ function ConquestFrameButton_OnEnter(self)
 	local rating, seasonBest, weeklyBest, seasonPlayed, seasonWon, weeklyPlayed, weeklyWon, cap = GetPersonalRatedInfo(self.id);
 	
 	tooltip.WeeklyBest:SetText(PVP_BEST_RATING..weeklyBest);
-	tooltip.WeeklyGamesWon:SetText(PVP_GAMES_WON..weeklyPlayed);
+	tooltip.WeeklyGamesWon:SetText(PVP_GAMES_WON..weeklyWon);
 	tooltip.WeeklyGamesPlayed:SetText(PVP_GAMES_PLAYED..weeklyPlayed);
 	
 	tooltip.SeasonBest:SetText(PVP_BEST_RATING..seasonBest);

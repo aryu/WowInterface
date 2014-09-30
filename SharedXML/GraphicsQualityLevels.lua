@@ -14,7 +14,7 @@ VideoData["Graphics_Quality"]={
 				Graphics_GroundClutterDropDown = VIDEO_OPTIONS_LOW,
 				Graphics_ShadowsDropDown = VIDEO_OPTIONS_LOW,
 				Graphics_TextureResolutionDropDown = VIDEO_OPTIONS_LOW,
-				Graphics_FilteringDropDown = VIDEO_OPTIONS_BILINEAR,
+				Graphics_FilteringDropDown = VIDEO_OPTIONS_TRILINEAR,
 				Graphics_LiquidDetailDropDown = VIDEO_OPTIONS_LOW,
 				Graphics_SunshaftsDropDown = VIDEO_OPTIONS_DISABLED,
 				Graphics_ProjectedTexturesDropDown = VIDEO_OPTIONS_DISABLED,
@@ -32,7 +32,7 @@ VideoData["Graphics_Quality"]={
 				Graphics_GroundClutterDropDown = VIDEO_OPTIONS_FAIR,
 				Graphics_ShadowsDropDown = VIDEO_OPTIONS_FAIR,
 				Graphics_TextureResolutionDropDown = VIDEO_OPTIONS_FAIR,
-				Graphics_FilteringDropDown = VIDEO_OPTIONS_TRILINEAR,
+				Graphics_FilteringDropDown = VIDEO_OPTIONS_2XANISOTROPIC,
 				Graphics_LiquidDetailDropDown = VIDEO_OPTIONS_FAIR,
 				Graphics_SunshaftsDropDown = VIDEO_OPTIONS_DISABLED,
 				Graphics_ProjectedTexturesDropDown = VIDEO_OPTIONS_DISABLED,
@@ -203,7 +203,7 @@ VideoData["RaidGraphics_Quality"].data = {
 			RaidGraphics_GroundClutterDropDown = VIDEO_OPTIONS_LOW,
 			RaidGraphics_ShadowsDropDown = VIDEO_OPTIONS_LOW,
 			RaidGraphics_TextureResolutionDropDown = VIDEO_OPTIONS_LOW,
-			RaidGraphics_FilteringDropDown = VIDEO_OPTIONS_BILINEAR,
+			RaidGraphics_FilteringDropDown = VIDEO_OPTIONS_TRILINEAR,
 			RaidGraphics_LiquidDetailDropDown = VIDEO_OPTIONS_LOW,
 			RaidGraphics_SunshaftsDropDown = VIDEO_OPTIONS_DISABLED,
 			RaidGraphics_ProjectedTexturesDropDown = VIDEO_OPTIONS_DISABLED,
@@ -221,7 +221,7 @@ VideoData["RaidGraphics_Quality"].data = {
 			RaidGraphics_GroundClutterDropDown = VIDEO_OPTIONS_FAIR,
 			RaidGraphics_ShadowsDropDown = VIDEO_OPTIONS_FAIR,
 			RaidGraphics_TextureResolutionDropDown = VIDEO_OPTIONS_FAIR,
-			RaidGraphics_FilteringDropDown = VIDEO_OPTIONS_TRILINEAR,
+			RaidGraphics_FilteringDropDown = VIDEO_OPTIONS_2XANISOTROPIC,
 			RaidGraphics_LiquidDetailDropDown = VIDEO_OPTIONS_FAIR,
 			RaidGraphics_SunshaftsDropDown = VIDEO_OPTIONS_DISABLED,
 			RaidGraphics_ProjectedTexturesDropDown = VIDEO_OPTIONS_DISABLED,
@@ -273,7 +273,7 @@ VideoData["RaidGraphics_Quality"].data = {
 			RaidGraphics_ParticleDensityDropDown = VIDEO_OPTIONS_ULTRA,
 			RaidGraphics_EnvironmentalDetailDropDown = VIDEO_OPTIONS_ULTRA,
 			RaidGraphics_GroundClutterDropDown = VIDEO_OPTIONS_ULTRA,
-			RaidGraphics_ShadowsDropDown = VIDEO_OPTIONS_HIGH,
+			RaidGraphics_ShadowsDropDown = VIDEO_OPTIONS_ULTRA,
 			RaidGraphics_TextureResolutionDropDown = VIDEO_OPTIONS_HIGH,
 			RaidGraphics_FilteringDropDown = VIDEO_OPTIONS_16XANISOTROPIC,
 			RaidGraphics_LiquidDetailDropDown = VIDEO_OPTIONS_ULTRA,
@@ -566,13 +566,13 @@ VideoData["Display_AntiAliasingDropDown"]={
 		[2] = {
 			text = ANTIALIASING_FXAA_LOW,
 			cvars =	{
-				ffxAntiAliasingMode = 2,
+				ffxAntiAliasingMode = 1,
 			},
 		},
 		[3] = {
 			text = ANTIALIASING_FXAA_HIGH,
 			cvars =	{
-				ffxAntiAliasingMode = 1,
+				ffxAntiAliasingMode = 2,
 			},
 		},
 		[4] = {
@@ -592,13 +592,13 @@ VideoData["Display_AntiAliasingDropDown"]={
 		[2] = {
 			text = ANTIALIASING_FXAA_LOW,
 			cvars =	{
-				ffxAntiAliasingMode = 2,
+				ffxAntiAliasingMode = 1,
 			},
 		},
 		[3] = {
 			text = ANTIALIASING_FXAA_HIGH,
 			cvars =	{
-				ffxAntiAliasingMode = 1,
+				ffxAntiAliasingMode = 2,
 			},
 		},
 	},
@@ -1116,7 +1116,7 @@ VideoData["Graphics_ShadowsDropDown"]={
 		[3] = {
 			text = VIDEO_OPTIONS_MEDIUM,
 			cvars =	{
-				shadowMode = GetDefaultVideoQualityOption("shadowMode", 2, 1),
+				shadowMode = GetDefaultVideoQualityOption("shadowMode", 2, 2),
 				shadowTextureSize = GetDefaultVideoQualityOption("shadowTextureSize", 2, 2048),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_MEDIUM;
@@ -1124,7 +1124,7 @@ VideoData["Graphics_ShadowsDropDown"]={
 		[4] = {
 			text = VIDEO_OPTIONS_HIGH,
 			cvars =	{
-				shadowMode = GetDefaultVideoQualityOption("shadowMode", 3, 2),
+				shadowMode = GetDefaultVideoQualityOption("shadowMode", 3, 3),
 				shadowTextureSize = GetDefaultVideoQualityOption("shadowTextureSize", 3, 2048),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_HIGH;
@@ -1132,7 +1132,7 @@ VideoData["Graphics_ShadowsDropDown"]={
 		[5] = {
 			text = VIDEO_OPTIONS_ULTRA,
 			cvars =	{
-				shadowMode = GetDefaultVideoQualityOption("shadowMode", 4, 3),
+				shadowMode = GetDefaultVideoQualityOption("shadowMode", 4, 4),
 				shadowTextureSize = GetDefaultVideoQualityOption("shadowTextureSize", 4, 2048),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_ULTRA;
@@ -1167,7 +1167,7 @@ VideoData["RaidGraphics_ShadowsDropDown"]={
 		[3] = {
 			text = VIDEO_OPTIONS_MEDIUM,
 			cvars =	{
-				raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 2, 1, true),
+				raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 2, 2, true),
 				raidShadowTextureSize = GetDefaultVideoQualityOption("RAIDshadowTextureSize", 2, 2048, true),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_MEDIUM;
@@ -1175,7 +1175,7 @@ VideoData["RaidGraphics_ShadowsDropDown"]={
 		[4] = {
 			text = VIDEO_OPTIONS_HIGH,
 			cvars =	{
-				raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 3, 2, true),
+				raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 3, 3, true),
 				raidShadowTextureSize = GetDefaultVideoQualityOption("RAIDshadowTextureSize", 3, 2048, true),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_HIGH;
@@ -1183,8 +1183,7 @@ VideoData["RaidGraphics_ShadowsDropDown"]={
 		[5] = {
 			text = VIDEO_OPTIONS_ULTRA,
 			cvars =	{
-				--raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 4, 3, true),
-				raidshadowMode = 4,
+				raidshadowMode = GetDefaultVideoQualityOption("RAIDshadowMode", 4, 4, true),
 				raidShadowTextureSize = GetDefaultVideoQualityOption("RAIDshadowTextureSize", 4, 2048, true),
 			},
 			tooltip = VIDEO_OPTIONS_SHADOW_QUALITY_ULTRA;
@@ -1825,7 +1824,7 @@ VideoData["Advanced_DesktopGamma"]={
 				PlaySound("igMainMenuOptionCheckBoxOff");
 			end
 			BlizzardOptionsPanel_CheckButton_OnClick(self);
-			VideoOptionsValueChanged(self, (self:GetChecked() and 1 or 0), flag);
+			VideoOptionsValueChanged(self, (self:GetChecked() and 1 or 0));
 			Graphics_EnableApply(self);
 		end,
 }
@@ -1840,6 +1839,7 @@ VideoData["Advanced_StereoEnabled"]={
 
 VideoData["Advanced_ShowHDModels"]={
 	name = SHOW_HD_MODELS_TEXT;
+	tooltip = OPTION_TOOLTIP_SHOW_HD_MODELS,
 }
 
 -------------------------------------------------------------------------------------------------------

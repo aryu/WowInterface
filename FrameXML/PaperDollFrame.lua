@@ -347,6 +347,10 @@ function PaperDollFrame_OnLoad (self)
 	self:RegisterEvent("SKILL_LINES_CHANGED");
 	self:RegisterEvent("COMBAT_RATING_UPDATE");
 	self:RegisterEvent("MASTERY_UPDATE");
+	self:RegisterEvent("MULTISTRIKE_UPDATE");
+	self:RegisterEvent("SPEED_UPDATE");
+	self:RegisterEvent("LIFESTEAL_UPDATE");
+	self:RegisterEvent("AVOIDANCE_UPDATE");
 	self:RegisterEvent("KNOWN_TITLES_UPDATE");
 	self:RegisterEvent("UNIT_NAME_UPDATE");
 	self:RegisterEvent("VARIABLES_LOADED");
@@ -433,7 +437,17 @@ function PaperDollFrame_OnEvent (self, event, ...)
 		end
 	end
 	
-	if ( event == "COMBAT_RATING_UPDATE" or event=="MASTERY_UPDATE" or event == "BAG_UPDATE" or event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_BANKSLOTS_CHANGED" or event == "PLAYER_AVG_ITEM_LEVEL_UPDATE" or event == "PLAYER_DAMAGE_DONE_MODS") then
+	if ( event == "COMBAT_RATING_UPDATE" or 
+			event == "MASTERY_UPDATE" or 
+			event == "MULTISTRIKE_UPDATE" or 
+			event == "SPEED_UPDATE" or 
+			event == "LIFESTEAL_UPDATE" or 
+			event == "AVOIDANCE_UPDATE" or 
+			event == "BAG_UPDATE" or 
+			event == "PLAYER_EQUIPMENT_CHANGED" or 
+			event == "PLAYER_BANKSLOTS_CHANGED" or 
+			event == "PLAYER_AVG_ITEM_LEVEL_UPDATE" or 
+			event == "PLAYER_DAMAGE_DONE_MODS") then
 		self:SetScript("OnUpdate", PaperDollFrame_QueuedUpdate);
 	elseif (event == "VARIABLES_LOADED") then
 		if (GetCVar("characterFrameCollapsed") ~= "0") then
@@ -715,7 +729,8 @@ function PaperDollFrame_SetStat(statFrame, unit, statIndex)
 		-- Spirit
 		elseif ( statIndex == LE_UNIT_STAT_SPIRIT ) then
 			-- All mana regen stats are displayed as mana/5 sec.
-			local regen, isNegatedForSpec = GetUnitManaRegenRateFromSpirit("player");
+			local _, isNegatedForSpec = GetUnitManaRegenRateFromSpirit("player");
+			local _, regen = GetManaRegen();
 			if ( UnitHasMana("player") and not isNegatedForSpec ) then
 				regen = floor( regen * 5.0 );
 				statFrame.tooltip2 = format(MANA_REGEN_FROM_SPIRIT, regen);
@@ -977,15 +992,8 @@ function PaperDollFrame_SetDamage(statFrame, unit)
 end
 
 function PaperDollFrame_SetAttackSpeed(statFrame, unit)
-	local speed, offhandSpeed;
 	local meleeHaste = GetMeleeHaste();
-
-	local rangedWeapon = IsRangedWeapon();
-	if ( rangedWeapon ) then
-		speed = UnitRangedDamage(unit);	
-	else 
-		speed, offhandSpeed = UnitAttackSpeed(unit);
-	end
+	local speed, offhandSpeed = UnitAttackSpeed(unit);
 
 --	speed = format("%.2F", speed);
 	if ( offhandSpeed ) then
@@ -1429,14 +1437,14 @@ function PaperDollFrame_SetVersatility(statFrame, unit)
 	
 	_G[statFrame:GetName().."Label"]:SetText(format(STAT_FORMAT, STAT_VERSATILITY));
 	local text = _G[statFrame:GetName().."StatText"];
-	local versatility = GetVersatility();
+	local versatility = GetCombatRating(CR_VERSATILITY_DAMAGE_DONE);
 	local versatilityDamageBonus = GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE);
 	local versatilityDamageTakenReduction = GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_TAKEN) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_TAKEN);
-	versatility = format("%d", versatility);
-	text:SetText(versatility);
-	statFrame.tooltip = HIGHLIGHT_FONT_COLOR_CODE .. format(PAPERDOLLFRAME_TOOLTIP_FORMAT, STAT_VERSATILITY) .. " " .. versatility .. FONT_COLOR_CODE_CLOSE;
+	local versatilityLabel = format("%.2F%%", versatilityDamageBonus);
+	text:SetText(versatilityLabel);
+	statFrame.tooltip = HIGHLIGHT_FONT_COLOR_CODE .. format(VERSATILITY_TOOLTIP_FORMAT, STAT_VERSATILITY, versatilityDamageBonus, versatilityDamageTakenReduction) .. FONT_COLOR_CODE_CLOSE;
 	
-	statFrame.tooltip2 = format(CR_VERSATILITY_TOOLTIP, BreakUpLargeNumbers(versatilityDamageBonus), BreakUpLargeNumbers(versatilityDamageTakenReduction));
+	statFrame.tooltip2 = format(CR_VERSATILITY_TOOLTIP, versatilityDamageBonus, versatilityDamageTakenReduction, BreakUpLargeNumbers(versatility), versatilityDamageBonus, versatilityDamageTakenReduction);
 
 	statFrame:Show();
 end
@@ -1607,13 +1615,16 @@ function PaperDollFrame_ClearIgnoredSlots ()
 end
 
 function PaperDollFrame_IgnoreSlotsForSet (setName)
-	local set = GetEquipmentSetItemIDs(setName);
-	for slot, item in ipairs(set) do
-		if ( item == EQUIPMENT_SET_IGNORED_SLOT ) then
+	local set = GetEquipmentSetIgnoreSlots(setName);
+	for slot, ignored in pairs(set) do
+		if ( ignored ) then
 			EquipmentManagerIgnoreSlotForSave(slot);
 			itemSlotButtons[slot].ignored = true;
-			PaperDollItemSlotButton_Update(itemSlotButtons[slot]);
+		else
+			EquipmentManagerClearIgnoredSlotsForSave(slot);
+			itemSlotButtons[slot].ignored = false;
 		end
+		PaperDollItemSlotButton_Update(itemSlotButtons[slot]);
 	end
 end
 

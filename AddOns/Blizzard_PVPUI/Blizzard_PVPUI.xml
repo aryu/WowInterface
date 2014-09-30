@@ -227,7 +227,7 @@
 		</Frames>
 	</Button>
 	
-	<Frame name="PVPCurrencyDisplayTemplate" virtual="true">
+	<Button name="PVPCurrencyDisplayTemplate" virtual="true">
 		<Size x="36" y="36"/>
 		<Layers>
 			<Layer level="ARTWORK">	
@@ -251,11 +251,18 @@
 				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 				GameTooltip:SetCurrencyTokenByID(self.currencyID);
 			</OnEnter>
+			<OnClick>
+				local parent = self:GetParent();
+				local parentFunction = parent:GetScript("OnClick");
+				if ( parentFunction ) then
+					parentFunction(parent, button, down);
+				end
+			</OnClick>
 			<OnLeave>
 				GameTooltip:Hide();
 			</OnLeave>
 		</Scripts>
-	</Frame>
+	</Button>
 	
 	<Frame name="PVPCurrencyRewardTemplate" virtual="true">
 		<Size x="28" y="28"/>
@@ -300,9 +307,9 @@
 			</Layer>
 			<Layer level="ARTWORK" textureSubLevel="2">
 				<Texture parentKey="Ring" atlas="bluemenu-Ring">
-					<Size x="100" y="100"/>
+					<Size x="95" y="96"/>
 					<Anchors>
-						<Anchor point="LEFT" x="-14" y="-1" />
+						<Anchor point="LEFT" x="-12" y="-1" />
 					</Anchors>
 				</Texture>
 			</Layer>
@@ -439,58 +446,58 @@
 				<Frames>
 					<Button name="$parentCategoryButton1" inherits="PVPQueueFrameButtonTemplate" parentKey="CategoryButton1" id="1">
 						<Anchors>
-							<Anchor point="TOPLEFT" x="10" y="-68" />
+							<Anchor point="TOPLEFT" x="10" y="-70" />
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
 								<FontString parentKey="Name" inherits="GameFontNormalMed3" spacing="2" justifyH="LEFT">
 									<Size x="106" y="0"/>
 									<Anchors>
-										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="-5" y="13" />
+										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="0" y="13" />
 									</Anchors>
 								</FontString>
 							</Layer>
 						</Layers>
 						<Frames>
-							<Frame parentKey="CurrencyDisplay" inherits="PVPCurrencyDisplayTemplate">
+							<Button parentKey="CurrencyDisplay" inherits="PVPCurrencyDisplayTemplate">
 								<Anchors>
-									<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="-10" y="0"/>
+									<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="-9" y="2"/>
 								</Anchors>
-							</Frame>
+							</Button>
 						</Frames>
 					</Button>
 					<Button name="$parentCategoryButton2" inherits="PVPQueueFrameButtonTemplate" parentKey="CategoryButton2" id="2">
 						<Anchors>
-							<Anchor point="TOP" relativeTo="$parentCategoryButton1" relativePoint="BOTTOM" x="0" y="-24" />
+							<Anchor point="TOP" relativeTo="$parentCategoryButton1" relativePoint="BOTTOM" x="0" y="-23" />
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
 								<FontString parentKey="Name" inherits="GameFontNormalMed3" spacing="2" justifyH="LEFT">
 									<Size x="106" y="0"/>
 									<Anchors>
-										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="-5" y="13" />
+										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="0" y="13" />
 									</Anchors>
 								</FontString>
 							</Layer>
 						</Layers>
 						<Frames>
-							<Frame parentKey="CurrencyDisplay" inherits="PVPCurrencyDisplayTemplate">
+							<Button parentKey="CurrencyDisplay" inherits="PVPCurrencyDisplayTemplate">
 								<Anchors>
-									<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="-10" y="0"/>
+									<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="-9" y="2"/>
 								</Anchors>
-							</Frame>
+							</Button>
 						</Frames>
 					</Button>
 					<Button name="$parentCategoryButton3" inherits="PVPQueueFrameButtonTemplate" parentKey="CategoryButton3" id="3">
 						<Anchors>
-							<Anchor point="TOP" relativeTo="$parentCategoryButton2" relativePoint="BOTTOM" x="0" y="-24" />
+							<Anchor point="TOP" relativeTo="$parentCategoryButton2" relativePoint="BOTTOM" x="0" y="-23" />
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
 								<FontString parentKey="Name" inherits="GameFontNormalLarge" spacing="2" justifyH="LEFT">
 									<Size x="106" y="0"/>
 									<Anchors>
-										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="-5" y="0" />
+										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="0" y="0" />
 									</Anchors>
 								</FontString>
 							</Layer>
@@ -498,18 +505,29 @@
 					</Button>
 					<Button name="$parentCategoryButton4" inherits="PVPQueueFrameButtonTemplate" parentKey="CategoryButton4" id="4">
 						<Anchors>
-							<Anchor point="TOP" relativeTo="$parentCategoryButton3" relativePoint="BOTTOM" x="0" y="-24" />
+							<Anchor point="TOP" relativeTo="$parentCategoryButton3" relativePoint="BOTTOM" x="0" y="-23" />
 						</Anchors>
 						<Layers>
 							<Layer level="ARTWORK">
 								<FontString parentKey="Name" inherits="GameFontNormalLarge" spacing="2" justifyH="LEFT">
 									<Size x="106" y="0"/>
 									<Anchors>
-										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="-5" y="0" />
+										<Anchor point="LEFT" relativeKey="$parent.Ring" relativePoint="RIGHT" x="0" y="0" />
 									</Anchors>
 								</FontString>
 							</Layer>
 						</Layers>
+						<Frames>
+							<Frame name="PremadeGroupsPvPTutorialAlert" inherits="MicroButtonAlertTemplate" parent="PVPQueueFrameCategoryButton4">
+								<KeyValues>
+									<KeyValue key="label" value="LFG_LIST_TUTORIAL_ALERT" type="global"/>
+									<KeyValue key="tutorialIndex" value="LE_FRAME_TUTORIAL_LFG_LIST" type="global"/>
+								</KeyValues>
+								<Anchors>
+									<Anchor point="BOTTOM" relativeKey="$parent" relativePoint="TOP" x="0" y="8"/>
+								</Anchors>
+							</Frame>
+						</Frames>
 					</Button>
 					<!-- Casual  -->
 					<Frame name="HonorFrame" toplevel="true" useParentLevel="true" >
@@ -531,6 +549,14 @@
 												<MinColor r="1" g="0" b="0" a="0.0"/>
 												<MaxColor r="0.38" g="0" b="0.79" a="0.2"/>
 											</Gradient>
+										</Texture>
+									</Layer>
+									<Layer level="BORDER">
+										<Texture parentKey="TopTileStreaks" inherits="_UI-Frame-TopTileStreaks">
+											<Anchors>
+												<Anchor point="TOPLEFT" x="0" y="0"/>
+												<Anchor point="TOPRIGHT" x="0" y="0"/>
+											</Anchors>
 										</Texture>
 									</Layer>
 								</Layers>
@@ -774,12 +800,12 @@
 									</Button>
 									<Button parentKey="Arena2Button" inherits="PVPBonusWorldPVPButtonTemplate">
 										<Anchors>
-											<Anchor point="BOTTOM" relativeKey="$parent.WorldBattlesTexture" relativePoint="BOTTOM" x="0" y="9"/>
+											<Anchor point="BOTTOM" relativeKey="$parent.WorldBattlesTexture" relativePoint="BOTTOM" x="0" y="12"/>
 										</Anchors>
 									</Button>
 									<Button parentKey="Arena1Button" inherits="PVPBonusWorldPVPButtonTemplate">
 										<Anchors>
-											<Anchor point="BOTTOM" relativeKey="$parent.Arena2Button" relativePoint="TOP" x="0" y="9"/>
+											<Anchor point="BOTTOM" relativeKey="$parent.Arena2Button" relativePoint="TOP" x="0" y="3"/>
 										</Anchors>
 									</Button>
 									<Frame parentKey="BattlegroundReward1" inherits="PVPCurrencyRewardTemplate">
@@ -822,8 +848,11 @@
 										</Anchors>
 									</Frame>
 								</Frames>
+								<Scripts>
+									<OnShow function="HonorFrameBonusFrame_OnShow"/>
+								</Scripts>
 							</Frame>
-							<Button name="$parentSoloQueueButton" parentKey="SoloQueueButton" inherits="MagicButtonTemplate" text="BATTLEFIELD_JOIN">
+							<Button name="$parentSoloQueueButton" parentKey="SoloQueueButton" inherits="MagicButtonTemplate" text="BATTLEFIELD_JOIN" motionScriptsWhileDisabled="true">
 								<Size x="116" y="22"/>
 								<Anchors>
 									<Anchor point="BOTTOMLEFT" x="1" y="0"/>
@@ -833,9 +862,17 @@
 										PlaySound("igMainMenuOptionCheckBoxOn");
 										HonorFrame_Queue();
 									</OnClick>
+									<OnEnter>
+										if ( self.tooltip ) then
+											GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+											GameTooltip:SetText(self.tooltip, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1, true);
+											GameTooltip:Show();
+										end
+									</OnEnter>
+									<OnLeave function="GameTooltip_Hide"/>
 								</Scripts>
 							</Button>
-							<Button name="$parentGroupQueueButton" parentKey="GroupQueueButton" inherits="MagicButtonTemplate" text="BATTLEFIELD_GROUP_JOIN">
+							<Button name="$parentGroupQueueButton" parentKey="GroupQueueButton" inherits="MagicButtonTemplate" text="BATTLEFIELD_GROUP_JOIN" motionScriptsWhileDisabled="true">
 								<Size x="116" y="22"/>
 								<Anchors>
 									<Anchor point="BOTTOMRIGHT" x="1" y="0"/>
@@ -845,6 +882,14 @@
 										PlaySound("igMainMenuOptionCheckBoxOn");
 										HonorFrame_Queue(true);
 									</OnClick>
+									<OnEnter>
+										if ( self.tooltip ) then
+											GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+											GameTooltip:SetText(self.tooltip, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, 1, true);
+											GameTooltip:Show();
+										end
+									</OnEnter>
+									<OnLeave function="GameTooltip_Hide"/>
 								</Scripts>
 							</Button>					
 						</Frames>
@@ -1208,7 +1253,7 @@
 							<OnShow  function="WarGamesFrame_OnShow"/>
 						</Scripts>
 					</Frame>
-					<Frame name="LFGListPVPStub">
+					<Frame name="LFGListPVPStub" hidden="true">
 						<Size x="338" y="428"/>
 						<Anchors>
 							<Anchor point="TOPLEFT" x="224" y="0"/>
@@ -1229,38 +1274,6 @@
 					<OnShow function="PVPQueueFrame_OnShow"/>
 					<OnEvent function="PVPQueueFrame_OnEvent"/>
 				</Scripts>
-			</Frame>
-			<!-- raised frame for shadows to be on top of the buttons -->
-			<Frame parentKey="Shadows">
-				<Size x="227" y="399"/>
-				<Anchors>
-					<Anchor point="TOPLEFT" x="4" y="-25" />
-				</Anchors>
-				<Layers>
-					<Layer level="OVERLAY">
-						<Texture file="Interface\Common\bluemenu-shadowcovers">		<!-- left line -->
-							<Size x="84" y="324"/>
-							<Anchors>
-								<Anchor point="TOPLEFT" x="4" y="-36" />
-							</Anchors>
-							<TexCoords left="0.00781250" right="0.66406250" top="0.00097656" bottom="0.34960938"/>
-						</Texture>
-						<Texture file="Interface\Common\bluemenu-shadowcovers">		<!-- right line -->
-							<Size x="84" y="324"/>
-							<Anchors>
-								<Anchor point="TOPLEFT" x="127" y="-36" />
-							</Anchors>
-							<TexCoords left="0.00781250" right="0.66406250" top="0.35156250" bottom="0.70019531"/>
-						</Texture>
-						<Texture file="Interface\Common\bluemenu-vert" vertTile="true">
-							<Size x="5" y="403"/>
-							<Anchors>
-								<Anchor point="TOPLEFT" x="211" y="3" />
-							</Anchors>
-							<TexCoords left="0.00781250" right="0.04687500" top="0" bottom="1"/>
-						</Texture>
-					</Layer>
-				</Layers>
 			</Frame>
 			
 		</Frames>

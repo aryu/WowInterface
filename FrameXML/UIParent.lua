@@ -33,7 +33,7 @@ UIPanelWindows["TaxiFrame"] =					{ area = "left",			pushable = 0, 	width = 605,
 UIPanelWindows["PVPUIFrame"] =					{ area = "left",			pushable = 0,	whileDead = 1, width = 563};
 UIPanelWindows["PVPBannerFrame"] =				{ area = "left",			pushable = 1};
 UIPanelWindows["PetStableFrame"] =				{ area = "left",			pushable = 0};
-UIPanelWindows["PVEFrame"] =					{ area = "left",			pushable = 0, 	whileDead = 1, width = 563};
+UIPanelWindows["PVEFrame"] =					{ area = "left",			pushable = 1, 	whileDead = 1, width = 563};
 UIPanelWindows["EncounterJournal"] =			{ area = "left",			pushable = 0, 	whileDead = 1, width = 830};
 UIPanelWindows["PetJournalParent"] =			{ area = "left",			pushable = 0, 	whileDead = 1, width = 830};
 UIPanelWindows["TradeFrame"] =					{ area = "left",			pushable = 1};
@@ -50,7 +50,7 @@ UIPanelWindows["GossipFrame"] =					{ area = "left",			pushable = 0};
 UIPanelWindows["DressUpFrame"] =				{ area = "left",			pushable = 2};
 UIPanelWindows["PetitionFrame"] =				{ area = "left",			pushable = 0};
 UIPanelWindows["ItemTextFrame"] =				{ area = "left",			pushable = 0};
-UIPanelWindows["FriendsFrame"] =				{ area = "left",			pushable = 0,	whileDead = 1, extraWidth = 32};
+UIPanelWindows["FriendsFrame"] =				{ area = "left",			pushable = 0,	whileDead = 1 };
 UIPanelWindows["RaidParentFrame"] =				{ area = "left",			pushable = 1,	whileDead = 1 };
 UIPanelWindows["RaidBrowserFrame"] =			{ area = "left",			pushable = 1,	};
 
@@ -62,7 +62,7 @@ UIPanelWindows["ChatConfigFrame"] =				{ area = "center",			pushable = 0, 		xoff
 UIPanelWindows["WorldStateScoreFrame"] =		{ area = "center",			pushable = 0, 		xoffset = -16, 		yoffset = 12,	whileDead = 1 };
 UIPanelWindows["QuestChoiceFrame"] =			{ area = "center",			pushable = 0, 		xoffset = -16, 		yoffset = 12,	whileDead = 0, allowOtherPanels = 1 };
 UIPanelWindows["GarrisonBuildingFrame"] =		{ area = "center",			pushable = 0,		whileDead = 1, 		width = 1002, 	allowOtherPanels = 1};
-UIPanelWindows["GarrisonMissionFrame"] =		{ area = "center",			pushable = 0,		whileDead = 1, 		width = 1002, 	allowOtherPanels = 1};
+UIPanelWindows["GarrisonMissionFrame"] =		{ area = "center",			pushable = 0,		whileDead = 1, 		checkFit = 1,	allowOtherPanels = 1, extraWidth = 20,	extraHeight = 100 };
 UIPanelWindows["GarrisonLandingPage"] =			{ area = "center",			pushable = 0,		whileDead = 1, 		width = 800, 	allowOtherPanels = 1};
 UIPanelWindows["GarrisonMonumentFrame"] =		{ area = "center",			pushable = 0,		whileDead = 1, 		width = 333, 	allowOtherPanels = 1};
 UIPanelWindows["GarrisonRecruiterFrame"] =		{ area = "left",			pushable = 0};
@@ -313,6 +313,9 @@ function UIParent_OnLoad(self)
 	self:RegisterEvent("GARRISON_SHOW_LANDING_PAGE");
 	self:RegisterEvent("GARRISON_MONUMENT_SHOW_UI");
 	self:RegisterEvent("GARRISON_RECRUITMENT_NPC_OPENED");
+
+	-- Shop (for Asia promotion)
+	self:RegisterEvent("PRODUCT_DISTRIBUTIONS_UPDATED");
 end
 
 
@@ -479,6 +482,29 @@ function MovePad_LoadUI()
 end
 ]]
 
+function Tutorial_LoadUI()
+	if ( GetTutorialsEnabled() and UnitLevel("player") < NPE_TUTORIAL_COMPLETE_LEVEL ) then
+		UIParentLoadAddOn("Blizzard_Tutorial");
+	end
+end
+
+local playerEnteredWorld = false;
+local varsLoaded = false;
+function NPETutorial_AttemptToBegin(event)
+	if ( NewPlayerExperience and not NewPlayerExperience.IsActive ) then
+		NewPlayerExperience:Begin();
+		return;
+	end
+	if( event == "PLAYER_ENTERING_WORLD" ) then
+		playerEnteredWorld = true;
+	elseif ( event == "VARIABLES_LOADED" ) then
+		varsLoaded = true;
+	end
+	if ( playerEnteredWorld and varsLoaded ) then
+		Tutorial_LoadUI();
+	end
+end
+
 function ShowMacroFrame()
 	MacroFrame_LoadUI();
 	if ( MacroFrame_Show ) then
@@ -622,7 +648,7 @@ function ToggleLFDParentFrame()
 		return;
 	end
 
-	if ( UnitLevel("player") >= SHOW_LFD_LEVEL ) then
+	if ( UnitLevel("player") >= math.min(SHOW_LFD_LEVEL,SHOW_PVP_LEVEL) ) then
 		PVEFrame_ToggleFrame("GroupFinderFrame", LFDParentFrame);
 	end
 end
@@ -713,7 +739,7 @@ function TogglePVPUI()
 		return;
 	end
 	
-	if ( UnitLevel("player") >= SHOW_LFD_LEVEL ) then
+	if ( UnitLevel("player") >= math.min(SHOW_LFD_LEVEL,SHOW_PVP_LEVEL) ) then
 		PVEFrame_ToggleFrame("PVPUIFrame", nil);
 	end
 end
@@ -794,6 +820,10 @@ function UIParent_OnEvent(self, event, ...)
 			GMChatFrameEditBox:SetAttribute("chatType", "WHISPER");
 		end
 		TargetFrame_OnVariablesLoaded();
+		
+		NPETutorial_AttemptToBegin(event);
+		
+		StoreFrame_CheckForFree(event);
 	elseif ( event == "PLAYER_LOGIN" ) then
 		TimeManager_LoadUI();
 		-- You can override this if you want a Combat Log replacement
@@ -972,6 +1002,28 @@ function UIParent_OnEvent(self, event, ...)
 
 		-- display loot specialization setting
 		PrintLootSpecialization();
+		
+		--Bonus roll/spell confirmation.
+		local spellConfirmations = GetSpellConfirmationPromptsInfo();
+		
+		for i=1, #spellConfirmations do
+			if ( spellConfirmations[i].spellID ) then
+				if ( spellConfirmations[i].confirmType == CONFIRMATION_PROMPT_BONUS_ROLL ) then
+					BonusRollFrame_StartBonusRoll(spellConfirmations[i].spellID, spellConfirmations[i].text, spellConfirmations[i].duration, spellConfirmations[i].currencyID);
+				else
+					StaticPopup_Show("SPELL_CONFIRMATION_PROMPT", spellConfirmations[i].text, spellConfirmations[i].duration, spellConfirmations[i].spellID);
+				end
+			end
+		end
+		
+		--Group Loot Roll Windows.
+		local pendingLootRollIDs = GetActiveLootRollIDs();
+		
+		for i=1, #pendingLootRollIDs do
+			GroupLootFrame_OpenNewFrame(pendingLootRollIDs[i], GetLootRollTimeLeft(pendingLootRollIDs[i]));
+		end
+		
+		NPETutorial_AttemptToBegin(event);
 	elseif ( event == "GROUP_ROSTER_UPDATE" ) then
 		-- Hide/Show party member frames
 		RaidOptionsFrame_UpdatePartyFrames();
@@ -1475,6 +1527,8 @@ function UIParent_OnEvent(self, event, ...)
 			Garrison_LoadUI();
 		end
 		ShowUIPanel(GarrisonRecruiterFrame);
+	elseif ( event == "PRODUCT_DISTRIBUTIONS_UPDATED" ) then
+		StoreFrame_CheckForFree(event);
 	end
 end
 
@@ -1684,7 +1738,6 @@ function FramePositionDelegate:ShowUIPanel(frame, force)
 
 	-- If the store-frame is open, we don't let people open up any other panels (just as if it were full-screened)
 	if ( StoreFrame_IsShown and StoreFrame_IsShown() ) then
-		print("bail3")
 		return;
 	end
 
@@ -1698,6 +1751,17 @@ function FramePositionDelegate:ShowUIPanel(frame, force)
 		end
 	end
 
+	-- check if the UI fits due to scaling issues
+	if ( GetUIPanelWindowInfo(frame, "checkFit") == 1 ) then
+		local horizRatio = UIParent:GetWidth() / GetUIPanelWidth(frame);
+		local vertRatio = UIParent:GetHeight() / GetUIPanelHeight(frame);
+		if ( horizRatio < 1 or vertRatio < 1 ) then
+			frame:SetScale(min(horizRatio, vertRatio));
+		else
+			frame:SetScale(1);
+		end
+	end
+	
 	-- If we have a "center" frame open, only listen to other "center" open requests
 	local centerFrame = self:GetUIPanel("center");
 	local centerArea, centerPushable;
@@ -3634,15 +3698,15 @@ function GetRelativeDifficultyColor(unitLevel, challengeLevel)
 	local levelDiff = challengeLevel - unitLevel;
 	local color;
 	if ( levelDiff >= 5 ) then
-		return QuestDifficultyColors["impossible"];
+		return QuestDifficultyColors["impossible"], QuestDifficultyHighlightColors["impossible"];
 	elseif ( levelDiff >= 3 ) then
-		return QuestDifficultyColors["verydifficult"];
+		return QuestDifficultyColors["verydifficult"], QuestDifficultyHighlightColors["verydifficult"];
 	elseif ( levelDiff >= -4 ) then
-		return QuestDifficultyColors["difficult"];
+		return QuestDifficultyColors["difficult"], QuestDifficultyHighlightColors["difficult"];
 	elseif ( -levelDiff <= GetQuestGreenRange() ) then
-		return QuestDifficultyColors["standard"];
+		return QuestDifficultyColors["standard"], QuestDifficultyHighlightColors["standard"];
 	else
-		return QuestDifficultyColors["trivial"];
+		return QuestDifficultyColors["trivial"], QuestDifficultyHighlightColors["trivial"];
 	end
 end
 
@@ -4160,4 +4224,7 @@ end
 
 function RGBTableToColorCode(rgbTable)
 	return RGBToColorCode(rgbTable.r, rgbTable.g, rgbTable.b);
+end
+
+function nop()
 end

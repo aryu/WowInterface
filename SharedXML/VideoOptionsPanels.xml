@@ -186,6 +186,11 @@
 								</Anchor>
 							</Anchors>
 						</Texture>
+						<FontString name="$parentEnableRaidSettingsText" text="RAID_SETTINGS_ENABLED" inherits="GameFontNormalSmall" justifyH="LEFT">
+							<Anchors>
+								<Anchor point="TOPRIGHT" x="-10" y="-160"/>
+							</Anchors>
+						</FontString>
 					</Layer>
 				</Layers>
 				<Frames>
@@ -295,19 +300,10 @@
 					<!-- Outside the box -->
 					<CheckButton name="$parentRaidSettingsEnabledCheckBox" inherits="VideoOptionsSmallCheckButtonTemplate" motionScriptsWhileDisabled="true">
 						<Anchors>
-							<Anchor point="TOPRIGHT">
-								<Offset x="-200" y="-158"/>
-							</Anchor>
+							<Anchor point="RIGHT" relativeTo="$parentEnableRaidSettingsText" relativePoint="LEFT" x="0" y="0"/>
 						</Anchors>
 						<Scripts>
-							<OnLoad>
-								self.cvar = "RAIDsettingsEnabled";
-								self.SetValue = function (self, value)
-										BlizzardOptionsPanel_SetCVarSafe(self.cvar, value);
-									end
-								_G[self:GetName().."Text"]:SetText(RAID_SETTINGS_ENABLED);
-								VideoOptionsCheckbox_OnLoad(self);
-							</OnLoad>
+							<OnLoad function="Display_RaidSettingsEnabled_CheckButton_OnLoad"/>
 							<OnClick function="Display_RaidSettingsEnabled_CheckButton_OnClick"/>
 							<OnShow function="Dispaly_RaidSettingsEnabled_CheckButton_OnShow"/>
 						</Scripts>
@@ -317,6 +313,7 @@
 					<OnLoad>
 						self:SetBackdropBorderColor(.6, .6, .6, 1);
 					</OnLoad>
+					<OnShow function="VideoOptionsPanel_OnShow"/>
 				</Scripts>
 			</Frame>
 			
@@ -341,7 +338,7 @@
 					<Layer level="ARTWORK">
 						<FontString name="$parentTexturesHeader" text="TEXTURES_SUBHEADER" inherits="OptionsFontHighlight" justifyH="LEFT" justifyV="TOP">
 							<Anchors>
-								<Anchor point="TOPLEFT" x="20" y="-74"/>
+								<Anchor point="TOPLEFT" x="40" y="-74"/>
 							</Anchors>
 						</FontString>
 						<Texture name="$parentTexturesHeaderUnderline" inherits="videoSubUnderline" hidden="false" >
@@ -377,7 +374,7 @@
 							<Anchors>
 								<Anchor point="TOPLEFT" relativeTo="$parentTexturesHeader" relativePoint="TOPLEFT">
 									<Offset>
-										<AbsDimension x="320" y="0"/>
+										<AbsDimension x="310" y="0"/>
 									</Offset>
 								</Anchor>
 							</Anchors>
@@ -685,7 +682,7 @@
 
 			
 			<!-- Raid Panel -->
-			<Frame name="RaidGraphics_" hidden="true" parent="VideoOptionsFramePanelContainer">
+			<Frame name="RaidGraphics_" hidden="true">
 				<Anchors>
 					<Anchor point="TOPLEFT" x="5" y="-185"/>
 					<Anchor point="BOTTOMRIGHT" x="-5" y="40"/>
@@ -706,7 +703,7 @@
 
 						<FontString name="$parentTexturesHeader" text="TEXTURES_SUBHEADER" inherits="OptionsFontHighlight" justifyH="LEFT" justifyV="TOP">
 							<Anchors>
-								<Anchor point="TOPLEFT" x="20" y="-74"/>
+								<Anchor point="TOPLEFT" x="40" y="-74"/>
 							</Anchors>
 						</FontString>
 						<Texture name="$parentTexturesHeaderUnderline" inherits="videoSubUnderline" hidden="false" >
@@ -742,7 +739,7 @@
 							<Anchors>
 								<Anchor point="TOPLEFT" relativeTo="$parentTexturesHeader" relativePoint="TOPLEFT">
 									<Offset>
-										<AbsDimension x="320" y="0"/>
+										<AbsDimension x="310" y="0"/>
 									</Offset>
 								</Anchor>
 							</Anchors>
@@ -833,9 +830,7 @@
 					<Frame name="$parentRightQuality">
 						<Size x="560" y="22"/>
 						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentGraphicsHeaderUnderline" relativePoint="BOTTOMLEFT">
-								<Offset x="11" y="-17"/>
-							</Anchor>
+							<Anchor point="TOPLEFT" x="15" y="-17"/>
 						</Anchors>
 						<Backdrop bgFile="Interface\Buttons\UI-SliderBar-Background" edgeFile="Interface\Buttons\UI-SliderBar-Border" tile="true">
 							<EdgeSize>
@@ -1085,6 +1080,7 @@
 		</Frames>
 		<Scripts>
 			<OnShow>
+				Display_EnableRaidSettingsText:SetPoint("LEFT", "RaidButton", "RIGHT", 30, 0);
 				if( not InGlue() ) then
 					local inInstance, instanceType = IsInInstance();
 					if ( inInstance and (instanceType == "raid" or instanceType == "pvp") ) then
@@ -1491,6 +1487,8 @@
 					<OnLoad>
 						self.type = CONTROLTYPE_CHECKBOX;
 						self.cvar = "hdPlayerModels";
+						self.name = SHOW_HD_MODELS_TEXT;
+						self.tooltip = OPTION_TOOLTIP_SHOW_HD_MODELS;
 						BlizzardOptionsPanel_RegisterControl(self, self:GetParent());
 					</OnLoad>
 				</Scripts>
@@ -1705,34 +1703,37 @@
 						<Anchor point="TOPLEFT" x="16" y="-16"/>
 					</Anchors>
 				</FontString>
+				<Texture name="$parentDisplayHeaderUnderline" inherits="videoUnderline">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentDisplayHeader" relativePoint="BOTTOMLEFT">
+							<Offset>
+								<AbsDimension x="0" y="-3"/>
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
 			</Layer>
 		</Layers>
 		<Frames>
 			<Frame name="$parentLocaleDropDown" inherits="DropDownMenuTemplate" enableMouse="true">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentDisplayHeader" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="-16" y="-16"/>
-						</Offset>
+						<Offset x="120" y="-14"/>
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<Texture parentKey="RestartNeeded" file="Interface\Common\Lang-Alerts" hidden="true">
-							<Size x="512" y="22"/>
+					<Layer level="BACKGROUND">
+						<FontString name="$parentLabel" inherits="OptionsFontSmall" text="LOCALE_TEXT_LABEL">
 							<Anchors>
-								<Anchor point="TOPLEFT" relativeTo="$parent" relativePoint="BOTTOMLEFT" x="20" y="-20"/>
+								<Anchor point="RIGHT" relativePoint="LEFT"/>
 							</Anchors>
-						</Texture>
+						</FontString>
 					</Layer>
 				</Layers>
 				<Scripts>
 					<OnLoad>
 						InterfaceOptionsLanguagesPanelLocaleDropDown_OnLoad(self)
 					</OnLoad>
-					<OnEvent>
-						InterfaceOptionsLanguagesPanelLocaleDropDown_OnEvent(self, event, ...);
-					</OnEvent>
 					<OnEnter>
 						VideoOptionsTooltip:SetOwner(self, "ANCHOR_TOPRIGHT");
 						VideoOptionsTooltip:SetText(self.tooltip, nil, nil, nil, nil, 1);
@@ -1742,7 +1743,37 @@
 					</OnLeave>
 				</Scripts>
 			</Frame>
-<!--
+			<Frame name="$parentAudioLocaleDropDown" inherits="DropDownMenuTemplate" enableMouse="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentLocaleDropDown" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="0" y="-10"/>
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<FontString name="$parentLabel" inherits="OptionsFontSmall" text="LOCALE_AUDIO_LABEL">
+							<Anchors>
+								<Anchor point="RIGHT" relativePoint="LEFT"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+						InterfaceOptionsLanguagesPanelAudioLocaleDropDown_OnLoad(self)
+					</OnLoad>
+					<OnEnter>
+						VideoOptionsTooltip:SetOwner(self, "ANCHOR_TOPRIGHT");
+						VideoOptionsTooltip:SetText(self.tooltip, nil, nil, nil, nil, 1);
+					</OnEnter>
+					<OnLeave>
+						VideoOptionsTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+			</Frame>
+			<!--
 			<CheckButton name="$parentUseEnglishAudio" inherits="InterfaceOptionsCheckButtonTemplate" hidden="true">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentLocaleDropDown" relativePoint="TOPRIGHT">
@@ -1761,10 +1792,21 @@
 			</CheckButton>
 -->
 		</Frames>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="RestartNeeded" file="Interface\Common\Lang-Alerts" hidden="true">
+					<Size x="512" y="22"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentAudioLocaleDropDown" relativePoint="BOTTOMLEFT" x="-80" y="-20"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
 		<Scripts>
 			<OnLoad>
-				InterfaceOptionsLanguagesPanel_OnLoad(self);			
+				InterfaceOptionsLanguagesPanel_OnLoad(self);
 			</OnLoad>
-		</Scripts>		
+			<OnShow function="VideoOptionsPanel_OnShow"/>
+		</Scripts>
 	</Frame>
 </Ui>

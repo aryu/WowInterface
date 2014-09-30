@@ -20,8 +20,7 @@ function FloatingGarrisonFollower_Show(garrisonFollowerID, quality, level, itemL
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.displayID = C_Garrison.GetFollowerDisplayIDByID(garrisonFollowerID);
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.name = C_Garrison.GetFollowerNameByID(garrisonFollowerID);
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.spec = C_Garrison.GetFollowerClassSpecByID(garrisonFollowerID);
-		GARRISON_FOLLOWER_FLOATING_TOOLTIP.classSpecName = C_Garrison.GetFollowerClassSpecName(GARRISON_FOLLOWER_FLOATING_TOOLTIP.spec);
-		GARRISON_FOLLOWER_FLOATING_TOOLTIP.classSpecAtlas = C_Garrison.GetFollowerClassSpecAtlas(GARRISON_FOLLOWER_FLOATING_TOOLTIP.spec);
+		GARRISON_FOLLOWER_FLOATING_TOOLTIP.portraitIconID = C_Garrison.GetFollowerPortraitIconIDByID(garrisonFollowerID);
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.quality = quality;
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.level = level;
 		GARRISON_FOLLOWER_FLOATING_TOOLTIP.xp = 0;
@@ -51,13 +50,21 @@ function GarrisonFollowerTooltipTemplate_SetGarrisonFollower(tooltipFrame, data)
 	tooltipFrame.name = data.name;
 	tooltipFrame.Name:SetText(data.name);
 	tooltipFrame.ILevel:SetFormattedText(GARRISON_FOLLOWER_ITEM_LEVEL, data.itemLevel);
-	tooltipFrame.ClassSpecName:SetText(data.classSpecName);
 	tooltipFrame.Portrait.Level:SetText(data.level);
-	SetPortraitTexture(tooltipFrame.Portrait.Portrait, data.displayID);
+	GarrisonFollowerPortrait_Set(tooltipFrame.Portrait.Portrait, data.portraitIconID);
 	local color = ITEM_QUALITY_COLORS[data.quality];
 	tooltipFrame.Portrait.LevelBorder:SetVertexColor(color.r, color.g, color.b);
-	tooltipFrame.Portrait.PortraitRing:SetVertexColor(color.r, color.g, color.b);
-	tooltipFrame.Class:SetAtlas(data.classSpecAtlas);
+	tooltipFrame.Portrait.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b);
+	if ( data.spec ) then
+		local classSpecName = C_Garrison.GetFollowerClassSpecName(data.garrisonFollowerID);
+		tooltipFrame.ClassSpecName:SetText(classSpecName);
+		local classSpecAtlas = C_Garrison.GetFollowerClassSpecAtlas(data.spec);
+		if ( classSpecAtlas ) then
+			tooltipFrame.Class:SetAtlas(classSpecAtlas);
+		else
+			tooltipFrame.Class:SetTexture(nil);
+		end
+	end
 
 	if (not data.collected) then
 		tooltipFrame.ILevel:Hide();
@@ -101,7 +108,7 @@ function GarrisonFollowerTooltipTemplate_SetGarrisonFollower(tooltipFrame, data)
 	if (data.trait3 ~= 0 and data.trait3 ~= nil) then traitCount = traitCount + 1 end;
 	if (data.trait4 ~= 0 and data.trait4 ~= nil) then traitCount = traitCount + 1 end;
 
-	local detailed = true; -- always showing the detailed tooltip for now
+	local detailed = not data.noAbilityDescriptions;
 	
 	local abilityTemplate = "GarrisonFollowerAbilityTemplate";
 
@@ -110,11 +117,21 @@ function GarrisonFollowerTooltipTemplate_SetGarrisonFollower(tooltipFrame, data)
 	local abilityFrameHeightBase = 20;					-- ability frame height w/ no description/details being displayed
 	local spacingBetweenLabelAndFirstAbility = 8;		-- distance between the "Abilities" label and the first ability below it
 	local spacingBetweenNameAndDescription = 4;			-- must match the XML ability template setting
-	local spacingBetweenDescriptionAndDetails = 10;		-- must match the XML ability template setting
+	local spacingBetweenDescriptionAndDetails = 8;		-- must match the XML ability template setting
 
 	local tooltipFrameHeight = tooltipFrameHeightBase;
 	tooltipFrame:SetSize(260, tooltipFrameHeight);
 
+	if ( ENABLE_COLORBLIND_MODE == "1" ) then
+		tooltipFrame.Quality:SetText(_G["ITEM_QUALITY"..data.quality.."_DESC"]);
+		tooltipFrame.Quality:Show();
+		tooltipFrame.AbilitiesLabel:SetPoint("TOPLEFT", 15, -90);
+		tooltipFrameHeight = tooltipFrameHeight + 5;
+	else
+		tooltipFrame.Quality:Hide();
+		tooltipFrame.AbilitiesLabel:SetPoint("TOPLEFT", 15, -85);
+	end	
+	
 	if abilityCount > 0 then 
 		tooltipFrameHeight = tooltipFrameHeight + tooltipFrame.AbilitiesLabel:GetHeight() + abilityOffset;
 		tooltipFrame.AbilitiesLabel:Show();
@@ -244,7 +261,11 @@ function GarrisonFollowerTooltipTemplate_SetGarrisonFollower(tooltipFrame, data)
 		tooltipFrameHeight = tooltipFrameHeight + Trait:GetHeight();
 	end
 
-	tooltipFrame:SetSize(260, tooltipFrameHeight);
+	if ( not detailed ) then
+		tooltipFrameHeight = tooltipFrameHeight + abilityOffset;
+	end
+
+	tooltipFrame:SetSize(260, tooltipFrameHeight + 10);
 end
 
 function FloatingGarrisonFollowerAbility_Toggle(garrFollowerAbilityID)
@@ -270,9 +291,9 @@ function GarrisonFollowerAbilityTooltipTemplate_SetAbility(tooltipFrame, garrFol
 
 		local abilityIsTrait = C_Garrison.GetFollowerAbilityIsTrait(garrFollowerAbilityID);
 		
-		local abilityFrameHeightBase = 40;
+		local abilityFrameHeightBase = 45;
 		local spacingBetweenNameAndDescription = 4;			-- must match the XML ability template setting
-		local spacingBetweenDescriptionAndDetails = 10;		-- must match the XML ability template setting
+		local spacingBetweenDescriptionAndDetails = 8;		-- must match the XML ability template setting
 
 		tooltipFrame:SetHeight(abilityFrameHeightBase);
 		

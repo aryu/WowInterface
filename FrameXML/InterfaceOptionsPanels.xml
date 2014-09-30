@@ -1276,25 +1276,9 @@
 					</OnLoad>
 				</Scripts>
 			</CheckButton>
-			<CheckButton name="$parentMapQuestDifficulty" inherits="InterfaceOptionsCheckButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentAutoQuestTracking" relativePoint="BOTTOMLEFT">
-						<Offset x="0" y="-8"/>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>
-						self.type = CONTROLTYPE_CHECKBOX;
-						self.cvar = "mapQuestDifficulty";
-						self.uvar = "MAP_QUEST_DIFFICULTY";
-						self.setFunc = function () WorldMapFrame_ResetQuestColors(); end;
-						BlizzardOptionsPanel_RegisterControl(self, self:GetParent());
-					</OnLoad>
-				</Scripts>
-			</CheckButton>
 			<CheckButton name="$parentMapFade" inherits="InterfaceOptionsCheckButtonTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentMapQuestDifficulty" relativePoint="BOTTOMLEFT">
+					<Anchor point="TOPLEFT" relativeTo="$parentAutoQuestTracking" relativePoint="BOTTOMLEFT">
 						<Offset x="0" y="-8"/>
 					</Anchor>
 				</Anchors>
@@ -3916,9 +3900,7 @@
 							SetCVar(self.cvar, value);
 						end
 						BlizzardOptionsPanel_RegisterControl(self, self:GetParent());
-						if(IsMacClient()) then
-							BlizzardOptionsPanel_SetupDependentControl(InterfaceOptionsMousePanelEnableMouseSpeed, self);
-						end
+						BlizzardOptionsPanel_SetupDependentControl(InterfaceOptionsMousePanelEnableMouseSpeed, self);
 					</OnLoad>
 					<OnValueChanged>
 						self.value = value;
@@ -4015,11 +3997,7 @@
 				self.name = MOUSE_LABEL;
 				self.options = MousePanelOptions;
 				InterfaceOptionsPanel_OnLoad(self);
-				if(IsMacClient()) then
-					InterfaceOptionsMousePanelEnableMouseSpeed:Show();
-				else
-					InterfaceOptionsMousePanelEnableMouseSpeed:Hide();
-				end
+				InterfaceOptionsMousePanelEnableMouseSpeed:Show();
 			</OnLoad>
 		</Scripts>	
 	</Frame>
@@ -4174,13 +4152,15 @@
 					</OnShow>
 					<OnClick>
 						PlaySound("gsTitleOptionOK");
-						SetCVar("closedInfoFrames",""); -- reset the help plates too
+						SetCVar("closedInfoFrames", ""); -- reset the help plates too
+						SetCVar("showNPETutorials", "1");
 						ResetTutorials();
 						TutorialFrame_ClearQueue();
 						local tutorialsCheckButton = _G[self:GetParent():GetName() .. "ShowTutorials"];
 						if ( not tutorialsCheckButton:GetChecked() ) then
 							tutorialsCheckButton:Click()
 						end
+						NPETutorial_AttemptToBegin();
 						TriggerTutorial(1);
 						self:Disable();
 					</OnClick>
@@ -4190,11 +4170,7 @@
 			</Button>
 		</Frames>
 		<Scripts>
-			<OnLoad>
-				self.name = HELP_LABEL;
-				self.options = HelpPanelOptions;
-				InterfaceOptionsPanel_OnLoad(self);
-			</OnLoad>
+			<OnLoad function="InterfaceOptionsHelpPanel_OnLoad"/>
 		</Scripts>
 	</Frame>
 </Ui>

@@ -13,6 +13,8 @@ CONTAINER_OFFSET_X = 0;
 CONTAINER_SCALE = 0.75;
 BACKPACK_HEIGHT = 251;
 
+FRAME_THAT_OPENED_BAGS = nil;
+
 function ContainerFrame_OnLoad(self)
 	self:RegisterEvent("BAG_OPEN");
 	self:RegisterEvent("BAG_CLOSED");
@@ -54,8 +56,18 @@ function ContainerFrame_OnEvent(self, event, ...)
 	elseif ( event == "INVENTORY_SEARCH_UPDATE" ) then
 		ContainerFrame_UpdateSearchResults(self);
 	elseif ( event == "BAG_SLOT_FLAGS_UPDATED" ) then
-		if (self:IsShown() and self.FilterDropDown:IsShown()) then
-			UIDropDownMenu_RefreshAll(self.FilterDropDown);
+		if (self:GetID() == arg1) then
+			self.localFlag = nil;
+			if (self:IsShown()) then
+				ContainerFrame_Update(self);
+			end
+		end
+	elseif ( event == "BANK_BAG_SLOT_FLAGS_UPDATED" ) then
+		if (self:GetID() == (arg1 + NUM_BAG_SLOTS)) then
+			self.localFlag = nil;
+			if (self:IsShown()) then
+				ContainerFrame_Update(self);
+			end
 		end
 	end
 end
@@ -153,8 +165,8 @@ function ContainerFrame_OnHide(self)
 		UpdateMicroButtons();
 		PlaySound("KeyRingClose");
 	else
-		if ( self:GetID() == 0 ) then
-			SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_CLEAN_UP_BAGS, true);
+		if ( self:GetID() == 0 and BagHelpBox.wasShown ) then
+			BagHelpBox.wasShown = nil;
 		end
 		if ( BagHelpBox:IsShown() and BagHelpBox.owner == self ) then
 			BagHelpBox.owner = nil;
@@ -173,25 +185,55 @@ function ContainerFrame_OnShow(self)
 	self:RegisterEvent("BAG_NEW_ITEMS_UPDATED");
 	self:RegisterEvent("BAG_SLOT_FLAGS_UPDATED");
 
+	self.FilterIcon:Hide();
 	if ( self:GetID() == 0 ) then
-		if ( not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_CLEAN_UP_BAGS) ) then
+		local shouldShow = true;
+		if (IsCharacterNewlyBoosted() or FRAME_THAT_OPENED_BAGS ~= nil) then
+			shouldShow = false;
+		else
+			for i = BACKPACK_CONTAINER + 1, NUM_BAG_SLOTS, 1 do
+				if ( not GetInventoryItemID("player", ContainerIDToInventoryID(i)) ) then
+					shouldShow = false;
+					break;
+				end
+			end
+		end
+		if ( shouldShow and not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_CLEAN_UP_BAGS) ) then
 			BagHelpBox:ClearAllPoints();
 			BagHelpBox:SetPoint("RIGHT", BagItemAutoSortButton, "LEFT", -24, 0);
 			BagHelpBox.Text:SetText(CLEAN_UP_BAGS_TUTORIAL);
 			BagHelpBox.owner = self;
+			BagHelpBox.wasShown = true;
+			BagHelpBox.bitField = LE_FRAME_TUTORIAL_CLEAN_UP_BAGS;
 			BagHelpBox:Show();
 		end
 		MainMenuBarBackpackButton:SetChecked(true);
-	elseif ( self:GetID() <= NUM_BAG_SLOTS ) then 
+	elseif ( self:GetID() > 0) then -- The actual bank has ID -1, backpack has ID 0, we want to make sure we're looking at a regular or bank bag
 		local button = _G["CharacterBag"..(self:GetID() - 1).."Slot"];
 		if ( button ) then
 			button:SetChecked(true);
 		end
+		if (not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(self:GetID()))) then
+			for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
+				local active = false;
+				if ( self:GetID() > NUM_BAG_SLOTS ) then
+					active = GetBankBagSlotFlag(self:GetID() - NUM_BAG_SLOTS, i);
+				else
+					active = GetBagSlotFlag(self:GetID(), i);
+				end
+				if ( active ) then
+					self.FilterIcon.Icon:SetAtlas(BAG_FILTER_ICONS[i], true);
+					self.FilterIcon:Show();
+					break;
+				end
+			end
+		end
 		if ( not ContainerFrame1.allBags ) then
 			CheckBagSettingsTutorial();
 		end
-	else
-		UpdateBagButtonHighlight(self:GetID() - NUM_BAG_SLOTS);
+		if ( self:GetID() > NUM_BAG_SLOTS ) then
+			UpdateBagButtonHighlight(self:GetID() - NUM_BAG_SLOTS);
+		end
 	end
 	ContainerFrame1.bags[ContainerFrame1.bagsShown + 1] = self:GetName();
 	ContainerFrame1.bagsShown = ContainerFrame1.bagsShown + 1;
@@ -296,14 +338,24 @@ function UpdateNewItemList(containerFrame)
 	local name = containerFrame:GetName()
 	
 	for i=1, containerFrame.size, 1 do
-		itemButton = _G[name.."Item"..i];
-		
+		local itemButton = _G[name.."Item"..i];
 		C_NewItems.RemoveNewItem(id, itemButton:GetID());
 	end
 end
 
 function CheckBagSettingsTutorial()
-	if (GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_CLEAN_UP_BAGS) and not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_BAG_SETTINGS)) then
+	local shouldShow = true;
+	if (IsCharacterNewlyBoosted() or FRAME_THAT_OPENED_BAGS ~= nil) then
+		shouldShow = false;
+	else
+		for i = BACKPACK_CONTAINER + 1, NUM_BAG_SLOTS, 1 do
+			if ( not GetInventoryItemID("player", ContainerIDToInventoryID(i)) ) then
+				shouldShow = false;
+				break;
+			end
+		end
+	end
+	if (shouldShow and GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_CLEAN_UP_BAGS) and not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_BAG_SETTINGS)) then
 		local frame;
 		if (ContainerFrame4:IsShown() and ContainerFrame4:GetID() ~= 0) then
 			frame = ContainerFrame4;
@@ -321,29 +373,33 @@ function CheckBagSettingsTutorial()
 			BagHelpBox.Text:SetText(BAG_SETTINGS_TUTORIAL);
 			BagHelpBox:Show();
 			BagHelpBox.owner = frame;
-			SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_BAG_SETTINGS, true);
+			BagHelpBox.bitField = LE_FRAME_TUTORIAL_BAG_SETTINGS;
 		end
 	end
 end
 
 function SearchBagsForItem(itemID)
-	local slot = -1;
 	for i = 0, NUM_BAG_SLOTS do
-		local found = false;
-		local num = GetContainerNumSlots(i);
-		for j = 1, num do
+		for j = 1, GetContainerNumSlots(i) do
 			local id = GetContainerItemID(i, j);
 			if (id == itemID and C_NewItems.IsNewItem(i, j)) then
-				slot = i;
-				found = true;
-				break;
+				return i;
 			end
 		end
-		if (found) then
-			break;
+	end
+	return -1;
+end
+
+function SearchBagsForItemLink(itemLink)
+	for i = 0, NUM_BAG_SLOTS do
+		for j = 1, GetContainerNumSlots(i) do
+			local _, _, _, _, _, _, link = GetContainerItemInfo(i, j);
+			if (link == itemLink and C_NewItems.IsNewItem(i, j)) then
+				return i;
+			end
 		end
 	end
-	return slot;
+	return -1;
 end
 
 function ContainerFrame_GetOpenFrame()
@@ -366,9 +422,26 @@ function ContainerFrame_Update(frame)
 	local itemButton;
 	local texture, itemCount, locked, quality, readable, _, isFiltered, noValue;
 	local isQuestItem, questId, isActive, questTexture;
-	local isNewItem, isBattlePayItem, newItemTexture, flash, newItemAnim;
+	local isNewItem, isBattlePayItem, battlepayItemTexture, newItemTexture, flash, newItemAnim;
 	local tooltipOwner = GameTooltip:GetOwner();
 	
+	frame.FilterIcon:Hide();
+	if ( id ~= 0 and not IsInventoryItemProfessionBag("player", ContainerIDToInventoryID(id)) ) then
+		for i = LE_BAG_FILTER_FLAG_EQUIPMENT, NUM_LE_BAG_FILTER_FLAGS do
+			local active = false;
+			if ( id > NUM_BAG_SLOTS ) then
+				active = GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i);
+			else
+				active = GetBagSlotFlag(id, i);
+			end
+			if ( active ) then
+				frame.FilterIcon.Icon:SetAtlas(BAG_FILTER_ICONS[i], true);
+				frame.FilterIcon:Show();
+				break;
+			end
+		end
+	end
+
 	--Update Searchbox and sort button
 	if ( id == 0 ) then
 		BagItemSearchBox:SetParent(frame);
@@ -824,7 +897,7 @@ function ContainerFrame_GetExtendedPriceString(itemButton, isEquipped, quantity)
 	local bag = itemButton:GetParent():GetID();
 
 	local money, itemCount, refundSec, currencyCount, hasEnchants = GetContainerItemPurchaseInfo(bag, slot, isEquipped);
-	if ( not refundSec or ((honorPoints == 0) and (arenaPoints == 0) and (itemCount == 0) and (money == 0) and (currencyCount == 0)) ) then
+	if ( not refundSec or ((itemCount == 0) and (money == 0) and (currencyCount == 0)) ) then
 		return false;
 	end
 	
@@ -867,8 +940,8 @@ function ContainerFrame_GetExtendedPriceString(itemButton, isEquipped, quantity)
 	MerchantFrame.price = 0;
 	MerchantFrame.refundBag = bag;
 	MerchantFrame.refundSlot = slot;
-	MerchantFrame.honorPoints = honorPoints;
-	MerchantFrame.arenaPoints = arenaPoints;
+	MerchantFrame.honorPoints = nil;
+	MerchantFrame.arenaPoints = nil;
 
 	local refundItemTexture, refundItemLink, _;
 	if ( isEquipped ) then
@@ -884,7 +957,7 @@ function ContainerFrame_GetExtendedPriceString(itemButton, isEquipped, quantity)
 		textLine2 = "\n\n"..CONFIRM_REFUND_ITEM_ENHANCEMENTS_LOST;
 	end
 	StaticPopupDialogs["CONFIRM_REFUND_TOKEN_ITEM"].hasMoneyFrame = nil;
-	StaticPopup_Show("CONFIRM_REFUND_TOKEN_ITEM", itemsString, textLine2, {["texture"] = refundItemTexture, ["name"] = itemName, ["color"] = {r, g, b, 1}, ["link"] = refundItemLink, ["index"] = index, ["count"] = count * quantity});
+	StaticPopup_Show("CONFIRM_REFUND_TOKEN_ITEM", itemsString, textLine2, {["texture"] = refundItemTexture, ["name"] = itemName, ["color"] = {r, g, b, 1}, ["link"] = refundItemLink, ["index"] = nil, ["count"] = count * quantity});
 	return true;
 end
 
@@ -1065,7 +1138,6 @@ function ToggleAllBags()
 	end
 end
 
-FRAME_THAT_OPENED_BAGS = nil;
 function OpenAllBags(frame)
 	if ( not UIParent:IsShown() ) then
 		return;
@@ -1091,27 +1163,13 @@ function OpenAllBags(frame)
 end
 
 function CloseAllBags(frame)	
-	if( frame ) then
-		if ( frame:GetName() == FRAME_THAT_OPENED_BAGS) then
-			FRAME_THAT_OPENED_BAGS = nil;
-			CloseBackpack();
-			for i=1, NUM_BAG_FRAMES, 1 do
-				CloseBag(i);
-			end
-		end
+	if ( frame and frame:GetName() ~= FRAME_THAT_OPENED_BAGS) then
 		return;
 	end
-	
+
 	FRAME_THAT_OPENED_BAGS = nil;
 	CloseBackpack();
 	for i=1, NUM_BAG_FRAMES, 1 do
-		CloseBag(i);
-	end
-end
-
-function CloseAllBags()
-	CloseBackpack();
-	for i=1, NUM_CONTAINER_FRAMES, 1 do
 		CloseBag(i);
 	end
 end
@@ -1133,16 +1191,23 @@ BAG_FILTER_LABELS = {
 	[LE_BAG_FILTER_FLAG_JUNK] = BAG_FILTER_JUNK,
 };
 
+BAG_FILTER_ICONS = {
+	[LE_BAG_FILTER_FLAG_EQUIPMENT] = "bags-icon-equipment",
+	[LE_BAG_FILTER_FLAG_CONSUMABLES] = "bags-icon-consumables",
+	[LE_BAG_FILTER_FLAG_TRADE_GOODS] = "bags-icon-tradegoods",
+};
+
 function ContainerFrameFilterDropDown_OnLoad(self)
 	UIDropDownMenu_Initialize(self, ContainerFrameFilterDropDown_Initialize, "MENU");
 end
 
 function ContainerFrameFilterDropDown_Initialize(self, level)
-	local id = self:GetParent():GetID();
-
+	local frame = self:GetParent();
+	local id = frame:GetID();
+	
 	local info = UIDropDownMenu_CreateInfo();	
 
-	if (id > 0 and id <= NUM_BAG_SLOTS) then
+	if (id > 0) then -- The actual bank has ID -1, backpack has ID 0, we want to make sure we're looking at a regular or bank bag
 		info.text = BAG_FILTER_ASSIGN_TO;
 		info.isTitle = 1;
 		info.notCheckable = 1;
@@ -1157,9 +1222,30 @@ function ContainerFrameFilterDropDown_Initialize(self, level)
 			if ( i ~= LE_BAG_FILTER_FLAG_JUNK ) then
 				info.text = BAG_FILTER_LABELS[i];
 				info.func = function(_, _, _, value)
-					SetBagSlotFlag(id, i, not value);
+					value = not value;
+					if (id > NUM_BAG_SLOTS) then
+						SetBankBagSlotFlag(id - NUM_BAG_SLOTS, i, value);
+					else
+						SetBagSlotFlag(id, i, value);
+					end
+					if (value) then
+						frame.localFlag = i;
+						frame.FilterIcon.Icon:SetAtlas(BAG_FILTER_ICONS[i]);
+						frame.FilterIcon:Show();
+					else
+						frame.FilterIcon:Hide();
+						frame.localFlag = -1;						
+					end
 				end;
-				info.checked = GetBagSlotFlag(id, i);
+				if (frame.localFlag) then
+					info.checked = frame.localFlag == i;
+				else
+					if (id > NUM_BAG_SLOTS) then
+						info.checked = GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i);
+					else
+						info.checked = GetBagSlotFlag(id, i);
+					end
+				end
 				info.disabled = nil;
 				info.tooltipTitle = nil;
 				UIDropDownMenu_AddButton(info);
@@ -1184,7 +1270,7 @@ function ContainerFrameFilterDropDown_Initialize(self, level)
 		elseif (id == 0) then
 			SetBackpackAutosortDisabled(not value);
 		elseif (id > NUM_BAG_SLOTS) then
-			SetBankBagSlotAutosortDisabled(id, not value);
+			SetBankBagSlotFlag(id - NUM_BAG_SLOTS, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP, not value);
 		else
 			SetBagSlotFlag(id, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP, not value);
 		end
@@ -1194,7 +1280,7 @@ function ContainerFrameFilterDropDown_Initialize(self, level)
 	elseif (id == 0) then
 		info.checked = GetBackpackAutosortDisabled();
 	elseif (id > NUM_BAG_SLOTS) then
-		info.checked = GetBankBagSlotAutosortDisabled(id);
+		info.checked = GetBankBagSlotFlag(id - NUM_BAG_SLOTS, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP);
 	else
 		info.checked = GetBagSlotFlag(id, LE_BAG_FILTER_FLAG_IGNORE_CLEANUP);
 	end

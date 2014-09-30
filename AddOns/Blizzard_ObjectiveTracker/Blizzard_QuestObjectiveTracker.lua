@@ -132,10 +132,6 @@ end
 -- *****************************************************************************************************
 -- ***** ITEM FUNCTIONS
 -- *****************************************************************************************************
-
-function QuestObjectiveItem_OnClick(self, button, down)
-end
-
 function QuestObjectiveItem_OnLoad(self)
 	self:RegisterForClicks("AnyUp");
 end
@@ -381,6 +377,7 @@ function QuestObjectiveTracker_DoQuestObjectives(block, numObjectives, questComp
 							line.Sheen.Anim:Play();
 							line.Glow.Anim:Play();
 							line.state = "ADDING";
+							PlaySound("UI_QuestRollingForward_01");
 						else
 							QUEST_TRACKER_MODULE:AddObjective(block, objectiveIndex, text);
 						end
@@ -436,9 +433,7 @@ function QUEST_TRACKER_MODULE:Update()
 
 		-- check filters
 		local showQuest = true;
-		if ( inScenario and questType ~= QUEST_TYPE_SCENARIO and questType ~= QUEST_TYPE_DUNGEON) then
-			showQuest = false;
-		elseif ( isTask ) then
+		if ( isTask ) then
 			showQuest = false;
 		end
 

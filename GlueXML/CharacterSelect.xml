@@ -673,7 +673,7 @@
 					<Button name="CopyCharacterButton" inherits="GlueButtonSmallTemplate" hidden="true" text="COPY_CHARACTER">
 						<Size x="164" y="40"/>
 						<Anchors>
-							<Anchor point="BOTTOM" relativeTo="StoreButton" relativePoint="TOP" x="1" y="20"/>
+							<Anchor point="LEFT" relativeTo="CharacterSelectMenuButton" relativePoint="RIGHT" x="137" y="0"/>
 						</Anchors>
 						<Scripts>
 							<OnLoad function="CopyCharacterButton_OnLoad"/>
@@ -920,14 +920,14 @@
 									</OnClick>
 								</Scripts>
 							</Button>
-							<Button name="CharSelectBackToActiveButton" inherits="GlueButtonSmallTemplate" hidden="true" text="BACK_TO_ACTIVE_CHARACTERS">
+							<Button name="CharSelectBackToActiveButton" inherits="GlueButtonSmallTemplate" hidden="true" text="CANCEL">
 								<Size x="200" y="45"/>
 								<Anchors>
 									<Anchor point="BOTTOM" x="0" y="15"/>
 								</Anchors>
 								<Scripts>
 									<OnLoad>
-										self:SetWidth(self:GetTextWidth() + 50);
+										self:SetWidth(self:GetTextWidth() + 73);
 									</OnLoad>
 									<OnClick>
 										PlaySound("igMainMenuOptionCheckBoxOn");
@@ -941,7 +941,7 @@
 							<Button name="CharSelectUndeleteCharacterButton" inherits="GluePanelButtonTemplate" hidden="true" motionScriptsWhileDisabled="true">
 								<Size x="52" y="45"/>
 								<Anchors>
-									<Anchor point="LEFT" relativeTo="CharSelectCreateCharacterButton" relativePoint="RIGHT" x="-18" y="0"/>
+									<Anchor point="LEFT" relativeTo="CharSelectCreateCharacterButton" relativePoint="RIGHT" x="-10" y="0"/>
 								</Anchors>
 								<Layers>
 									<Layer level="OVERLAY">
@@ -1327,7 +1327,7 @@
 										<Scripts>
 											<OnClick>
 												PlaySound("igMainMenuOptionCheckBoxOn");
-												C_CharacterServices.SetPopupSeen(true);
+												C_SharedCharacterServices.SetPopupSeen(true);
 												CharacterUpgradeFlow:SetTarget(true);
 												CharSelectServicesFlowFrame:Show();
 												CharacterServicesMaster_SetFlow(CharacterServicesMaster, CharacterUpgradeFlow);
@@ -1342,7 +1342,7 @@
 										<Scripts>
 											<OnClick>
 												PlaySound("igMainMenuOptionCheckBoxOn");
-												C_CharacterServices.SetPopupSeen(true);
+												C_SharedCharacterServices.SetPopupSeen(true);
 												CharacterServicesMaster_UpdateServiceButton();
 											</OnClick>
 										</Scripts>
@@ -1361,13 +1361,7 @@
 								CharSelectServicesFlowFrame:Show();
 								CharacterServicesMaster_SetFlow(CharacterServicesMaster, CharacterUpgradeFlow);
 							</OnClick>
-							<OnEnter>
-								self.Highlight:Show();
-				  				GlueTooltip:SetOwner(self, "ANCHOR_LEFT");
-				   				GlueTooltip:AddLine(CHARACTER_UPGRADE_WOD_TOKEN_TITLE, 1.0, 1.0, 1.0);
-				   				GlueTooltip:AddLine(CHARACTER_UPGRADE_WOD_TOKEN_DESCRIPTION, nil, nil, nil, 1, 1);
-				  				GlueTooltip:Show();
-							</OnEnter>
+							<OnEnter function="CharacterServicesTokenWoDFree_OnEnter"/>
 							<OnLeave>
 								self.Highlight:Hide();
 								GlueTooltip:Hide();
@@ -1916,7 +1910,7 @@
 			<Frame name="GameRoomBillingFrame" hidden="true">
 				<Size x="255" y="60"/>
 				<Anchors>
-					<Anchor point="TOP" relativeTo="CharacterSelectServerAlertFrame" relativePoint="BOTTOM" x="0" y="20"/>
+					<Anchor point="TOP" relativeTo="CharacterSelectServerAlertFrame" relativePoint="BOTTOM" x="0" y="0"/>
 				</Anchors>
 				<Layers>
 					<Layer level="BACKGROUND">

@@ -12,9 +12,19 @@ function GarrisonMonuntmentFrame_OnEvent(self, event, ...)
 	elseif(event == "GARRISON_MONUMENT_CLOSE_UI")then
 		HideUIPanel(GarrisonMonumentFrame);
 	elseif(event == "GARRISON_MONUMENT_LIST_LOADED")then
-		ShowUIPanel(GarrisonMonumentFrame);
+		C_Trophy.MonumentLoadSelectedTrophyID();
 	elseif(event == "GARRISON_MONUMENT_SELECTED_TROPHY_ID_LOADED")then
-		self.monumentID = C_Trophy.MonumentGetSelectedTrophyID();
+		local currentID = C_Trophy.MonumentGetSelectedTrophyID();
+		local count = C_Trophy.MonumentGetCount();
+		self.monumentID = 0;
+		for i=1, count do
+			local trophy_id = C_Trophy.MonumentGetTrophyInfoByIndex(i);
+			if( trophy_id == currentID ) then
+				self.monumentID = i;
+				break;
+			end
+		end
+		ShowUIPanel(GarrisonMonumentFrame);
 		GarrisonMonuntmentFrame_UpdateDisplay();
 	elseif(event == "GARRISON_MONUMENT_REPLACED")then
 		self.monumentID = C_Trophy.MonumentGetSelectedTrophyID();
@@ -23,6 +33,10 @@ function GarrisonMonuntmentFrame_OnEvent(self, event, ...)
 end
 
 function GarrisonMonuntmentFrame_SaveSelection()
+	if( not GarrisonMonumentFrame.monumentID ) then
+		C_Trophy.MonumentRevertAppearanceToSaved();
+		return;
+	end
 	local trophy_id, lock_code = C_Trophy.MonumentGetTrophyInfoByIndex(GarrisonMonumentFrame.monumentID);
 	if(lock_code == MATCH_CONDITION_SUCCESS) then
 		C_Trophy.MonumentSaveSelection(trophy_id);
@@ -32,17 +46,16 @@ function GarrisonMonuntmentFrame_SaveSelection()
 end
 
 function GarrisonMonuntmentFrame_OnShow(self)
-	self.monumentID = C_Trophy.MonumentGetSelectedTrophyID();
-	GarrisonMonuntmentFrame_UpdateDisplay();
-	PlaySound("igCharacterInfoOpen");
+	PlaySound("UI_Garrison_Monuments_Open");
 end
 
 function GarrisonMonuntmentFrame_OnHide(self)
 	GarrisonMonuntmentFrame_SaveSelection();
+	PlaySound("UI_Garrison_Monuments_Close");
 end
 
 function GarrisonMonuntmentLeftBtn_OnMouseDown(self)
-	PlaySound("igCharacterInfoOpen");
+	PlaySound("UI_Garrison_Monuments_Nav");
 	GarrisonMonumentFrame.LeftBtn.Texture:SetAtlas("Monuments-LeftButton-Down");
 	GarrisonMonuntmentFrame_UpdateSelectedTrophyID( -1 );
 end
@@ -52,7 +65,7 @@ function GarrisonMonuntmentLeftBtn_OnMouseUp(self)
 end
 
 function GarrisonMonuntmentRightBtn_OnMouseDown(self)
-	PlaySound("igCharacterInfoOpen");
+	PlaySound("UI_Garrison_Monuments_Nav");
 	GarrisonMonumentFrame.RightBtn.Texture:SetAtlas("Monuments-RightButton-Down");
 	GarrisonMonuntmentFrame_UpdateSelectedTrophyID( 1 );
 end

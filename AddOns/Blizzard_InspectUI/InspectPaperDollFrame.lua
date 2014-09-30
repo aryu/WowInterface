@@ -161,15 +161,10 @@ function InspectPaperDollItemSlotButton_Update(button)
 		end
 		SetItemButtonTexture(button, textureName);
 		SetItemButtonCount(button, 0);
+		button.IconBorder:Hide();
 		button.hasItem = nil;
 	end
 	if ( GameTooltip:IsOwned(button) ) then
-		if ( texture ) then
-            if ( not GameTooltip:SetInventoryItem(InspectFrame.unit, button:GetID()) ) then
-				GameTooltip:SetText(_G[strupper(strsub(button:GetName(), 8))]);
-			end
-		else
-			GameTooltip:Hide();
-		end
+		GameTooltip:Hide();
 	end
 end

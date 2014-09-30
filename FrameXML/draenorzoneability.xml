@@ -23,6 +23,11 @@
 								<Anchor point="CENTER" x="-2" y="0"/>
 							</Anchors>
 						</Texture>
+						<FontString parentKey="Count" inherits="NumberFontNormal" justifyH="RIGHT">
+							<Anchors>
+								<Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+							</Anchors>
+						</FontString>
 					</Layer>
 				</Layers>
 				<Frames>
@@ -60,10 +65,11 @@
 			<OnLoad function="DraenorZoneAbilityFrame_OnLoad"/>
 			<OnEvent function="DraenorZoneAbilityFrame_OnEvent"/>
 			<OnShow function="DraenorZoneAbilityFrame_OnShow"/>
+			<OnHide function="DraenorZoneAbilityFrame_OnHide"/>
 		</Scripts>
 	</Frame>
 
-	<Frame name="DraenorZoneAbilityButtonAlert" inherits="MicroButtonAlertTemplate">
+	<Frame name="DraenorZoneAbilityButtonAlert" inherits="MicroButtonAlertTemplate" parent="DraenorZoneAbilityFrame" frameStrata="MEDIUM" topLevel="false">
 		<Anchors>
 			<Anchor point="BOTTOM" relativeTo="DraenorZoneAbilityFrame" relativePoint="TOP" x="0" y="8"/>
 		</Anchors>
@@ -72,6 +78,10 @@
 				MicroButtonAlert_OnLoad(self);
 				self.Text:SetText(DRAENOR_ZONE_ABILITY_TUTORIAL);
 			</OnLoad>
+			<OnShow>
+				self:SetHeight(self.Text:GetHeight()+42);
+				self:SetFrameLevel(self:GetParent():GetFrameLevel()+3);
+			</OnShow>
 		</Scripts>
 	</Frame>
 </Ui>

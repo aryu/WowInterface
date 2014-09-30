@@ -63,6 +63,7 @@ StaticPopupDialogs["BATTLE_PET_PUT_IN_CAGE"] = {
 	button2 = CANCEL,
 	maxLetters = 30,
 	OnAccept = function(self)
+		PetJournal_SetPendingCage(self.data);
 		C_PetJournal.CagePetByID(self.data);
 		if (PetJournalPetCard.petID == self.data) then
 			PetJournal_ShowPetCard(1);
@@ -92,7 +93,7 @@ StaticPopupDialogs["BATTLE_PET_RELEASE"] = {
 };
 
 function PetJournalUtil_GetDisplayName(petID)
-	local speciesID, customName, level, xp, maxXp, displayID, isFavorite, petName, petIcon, petType, creatureID = C_PetJournal.GetPetInfoByPetID(petID);
+	local _, customName, _, _, _, _, _, petName = C_PetJournal.GetPetInfoByPetID(petID);
 	if ( customName ) then
 		return customName;
 	else
@@ -128,7 +129,6 @@ end
 
 function PetJournalParent_OnShow(self)
 	PlaySound("igCharacterInfoOpen");
-
 	PetJournalParent_UpdateSelectedTab(self);
 	UpdateMicroButtons();
 end
@@ -143,6 +143,7 @@ function PetJournal_OnLoad(self)
 	self:RegisterEvent("PET_JOURNAL_LIST_UPDATE");
 	self:RegisterEvent("PET_JOURNAL_PET_DELETED");
 	self:RegisterEvent("PET_JOURNAL_PETS_HEALED");
+	self:RegisterEvent("PET_JOURNAL_CAGE_FAILED");
 	self:RegisterEvent("BATTLE_PET_CURSOR_CLEAR");
 	self:RegisterEvent("COMPANION_UPDATE");
 	self:RegisterEvent("PET_BATTLE_LEVEL_CHANGED");
@@ -158,7 +159,6 @@ function PetJournal_OnLoad(self)
 end
 
 function PetJournal_OnShow(self)
-	PlaySound("igCharacterInfoOpen");
 	PetJournal_UpdatePetList();
 	PetJournal_UpdatePetLoadOut();
 	PetJournal_UpdatePetCard(PetJournalPetCard);
@@ -183,7 +183,6 @@ end
 
 function PetJournal_OnHide(self)
 	self:UnregisterEvent("ACHIEVEMENT_EARNED");
-	PlaySound("igCharacterInfoClose");
 	PetJournal.SpellSelect:Hide();
 	HelpPlate_Hide();
 end
@@ -194,6 +193,9 @@ function PetJournal_OnEvent(self, event, ...)
 		PetJournal_UpdatePetLoadOut();
 	elseif event == "PET_JOURNAL_PET_DELETED" then
 		local petID = ...;
+		if (PetJournal_IsPendingCage(petID)) then
+			PetJournal_ClearPendingCage();
+		end
 		PetJournal_UpdatePetList();
 		PetJournal_UpdatePetLoadOut();
 		if(PetJournalPetCard.petID == petID) then
@@ -202,6 +204,8 @@ function PetJournal_OnEvent(self, event, ...)
 		PetJournal_FindPetCardIndex();
 		PetJournal_UpdatePetCard(PetJournalPetCard);
 		PetJournal_HidePetDropdown();
+	elseif event == "PET_JOURNAL_CAGE_FAILED" then
+		PetJournal_ClearPendingCage();
 	elseif event == "PET_JOURNAL_PETS_HEALED" then
 		PetJournal_UpdatePetLoadOut();
 	elseif event == "PET_JOURNAL_LIST_UPDATE" then
@@ -384,7 +388,7 @@ end
 
 function PetJournal_UpdatePetAbility(abilityFrame, abilityID, petID)
 	--Get the info for the pet that has this ability
-	local speciesID, customName, level, xp, maxXp, displayID, isFavorite, petName, petIcon, petType, creatureID = C_PetJournal.GetPetInfoByPetID(petID);
+	local speciesID, customName, level, xp, maxXp, displayID, isFavorite, petName, petIcon, petType = C_PetJournal.GetPetInfoByPetID(petID);
 
 	local requiredLevel = PetJournalLoadout_GetRequiredLevel(abilityFrame:GetParent(), abilityID);
 
@@ -419,7 +423,7 @@ function PetJournal_ShowPetSelect(self)
 	local spellIndex2 = spellIndex1 + 3;
 
 	--Get the info for the pet that has this ability
-	local speciesID, customName, level, xp, maxXp, displayID, isFavorite, petName, petIcon, petType, creatureID = C_PetJournal.GetPetInfoByPetID(slotFrame.petID);
+	local speciesID, customName, level, xp, maxXp, displayID, isFavorite, petName, petIcon, petType = C_PetJournal.GetPetInfoByPetID(slotFrame.petID);
 	
 	if PetJournal.SpellSelect:IsShown() then 
 		if PetJournal.SpellSelect.slotIndex == slotIndex and 
@@ -575,7 +579,7 @@ function PetJournal_UpdatePetLoadOut()
 			loadoutPlate.petTypeIcon:Hide();
 			loadoutPlate.petID = nil;
 		else -- not locked and petID is not nil
-			local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID = C_PetJournal.GetPetInfoByPetID(petID);
+			local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType = C_PetJournal.GetPetInfoByPetID(petID);
 			C_PetJournal.GetPetAbilityList(speciesID, loadoutPlate.abilities, loadoutPlate.abilityLevels);	--Read ability/ability levels into the correct tables
 
 			--Find out how many abilities are usable due to level
@@ -661,23 +665,12 @@ function PetJournal_UpdatePetLoadOut()
 			loadoutPlate.isDead:SetShown(health <= 0);
 			
 			loadoutPlate.model:Show();
-			local modelChanged = false;
-			if ( displayID ~= 0 ) then
-				if ( displayID ~= loadoutPlate.displayID ) then
-					loadoutPlate.creatureID = nil;
-					loadoutPlate.displayID = displayID;
-					loadoutPlate.model:SetDisplayInfo(displayID);
-					loadoutPlate.model:SetDoBlend(false);
-					modelChanged = true;
-				end
-			elseif ( creatureID ~= 0 ) then
-				if ( creatureID ~= loadoutPlate.creatureID ) then
-					loadoutPlate.creatureID = creatureID;
-					loadoutPlate.displayID = nil;
-					loadoutPlate.model:SetCreature(creatureID);
-					loadoutPlate.model:SetDoBlend(false);
-					modelChanged = true;
-				end
+			local modelChanged = false;			
+			if ( displayID ~= loadoutPlate.displayID ) then
+				loadoutPlate.displayID = displayID;
+				loadoutPlate.model:SetDisplayInfo(displayID);
+				loadoutPlate.model:SetDoBlend(false);
+				modelChanged = true;
 			end
 			local isDead = health <= 0;
 			if ( modelChanged or isDead ~= loadoutPlate.model.wasDead ) then
@@ -752,7 +745,7 @@ function PetJournal_UpdatePetList()
 		pet = petButtons[i];
 		index = offset + i;
 		if index <= numPets then
-			local petID, speciesID, isOwned, customName, level, favorite, isRevoked, name, icon, petType, creatureID, sourceText, description, isWildPet, canBattle = C_PetJournal.GetPetInfoByIndex(index);
+			local petID, speciesID, isOwned, customName, level, favorite, isRevoked, name, icon, petType, _, _, _, _, canBattle = C_PetJournal.GetPetInfoByIndex(index);
 
 			if customName then
 				pet.name:SetText(customName);
@@ -792,7 +785,7 @@ function PetJournal_UpdatePetList()
 				else
 					pet.isDead:Hide();
 				end
-				if(isRevoked == true) then
+				if(isRevoked) then
 					pet.dragButton.levelBG:Hide();
 					pet.dragButton.level:Hide();
 					pet.iconBorder:Hide();
@@ -850,13 +843,8 @@ end
 
 
 function PetJournal_OnSearchTextChanged(self)
-	local text = self:GetText();
-	if text == SEARCH then
-		C_PetJournal.SetSearchFilter("");
-		return;
-	end
-	
-	C_PetJournal.SetSearchFilter(text);
+	SearchBoxTemplate_OnTextChanged(self);
+	C_PetJournal.SetSearchFilter(self:GetText());
 end
 
 function PetJournalListItem_OnClick(self, button)
@@ -1143,7 +1131,7 @@ function PetJournal_UpdatePetCard(self)
 		end
 	else
 		speciesID = PetJournalPetCard.speciesID;
-		name, icon, petType, creatureID, sourceText, description, isWild, canBattle, tradable, unique = C_PetJournal.GetPetInfoBySpeciesID(PetJournalPetCard.speciesID);
+		name, icon, petType, creatureID, sourceText, description, isWild, canBattle, tradable, unique, _, displayID = C_PetJournal.GetPetInfoBySpeciesID(PetJournalPetCard.speciesID);
 		level = 1;
 		self.PetInfo.level:Hide();
 		self.PetInfo.levelBG:Hide();
@@ -1199,22 +1187,11 @@ function PetJournal_UpdatePetCard(self)
 	self.model:Show();
 	self.shadows:Show();
 	local modelChanged = false;
-	if ( displayID and displayID ~= 0 ) then
-		if ( displayID ~= self.displayID ) then
-			self.creatureID = nil;
-			self.displayID = displayID;
-			self.model:SetDisplayInfo(displayID);
-			self.model:SetDoBlend(false);
-			modelChanged = true;
-		end
-	elseif ( creatureID ~= 0 ) then
-		if ( creatureID ~= self.creatureID ) then
-			self.creatureID = creatureID;
-			self.displayID = nil;
-			self.model:SetCreature(creatureID);
-			self.model:SetDoBlend(false);
-			modelChanged = true;
-		end
+	if ( displayID ~= self.displayID ) then
+		self.displayID = displayID;
+		self.model:SetDisplayInfo(displayID);
+		self.model:SetDoBlend(false);
+		modelChanged = true;
 	end
 	if ( modelChanged or self.model.wasDead ~= isDead ) then
 		if ( isDead ) then
@@ -1257,6 +1234,20 @@ function PetJournal_UpdatePetCard(self)
 	end
 end
 
+function PetJournal_SetPendingCage(petID)
+	local self = PetJournal;
+	self.pendingCage = petID;
+end
+
+function PetJournal_ClearPendingCage()
+	local self = PetJournal;
+	self.pendingCage = nil;
+end
+
+function PetJournal_IsPendingCage(petID)
+	local self = PetJournal;
+	return self.pendingCage and self.pendingCage == petID;
+end
 
 function GetPetTypeTexture(petType) 
 	if PET_TYPE_SUFFIX[petType] then
@@ -1571,7 +1562,7 @@ function PET_JOURNAL_ABILITY_INFO:GetPetType(target)
 		GMError("No species id found");
 		return 1;
 	end
-	local name, icon, petType, creatureID, sourceText, description, isWild, canBattle, tradable = C_PetJournal.GetPetInfoBySpeciesID(self.speciesID);
+	local _, _, petType = C_PetJournal.GetPetInfoBySpeciesID(self.speciesID);
 	return petType;
 end
 
@@ -1651,7 +1642,6 @@ end
 
 function PetJournalPetCount_OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:SetMinimumWidth(150);
 	GameTooltip:SetText(BATTLE_PETS_TOTAL_PETS, 1, 1, 1);
 	GameTooltip:AddLine(BATTLE_PETS_TOTAL_PETS_TOOLTIP, nil, nil, nil, true);
 	GameTooltip:Show();
@@ -1672,7 +1662,6 @@ end
 
 function PetJournalFindBattle_OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:SetMinimumWidth(150);
 	GameTooltip:SetText(FIND_BATTLE, 1, 1, 1);
 	GameTooltip:AddLine(BATTLE_PETS_FIND_BATTLE_TOOLTIP, nil, nil, nil, true);
 	
@@ -1688,7 +1677,6 @@ end
 function PetJournalAchievementStatus_OnEnter(self)
 	PetJournal.AchievementStatus.highlight:Show();
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:SetMinimumWidth(150);
 	GameTooltip:SetText(BATTLE_PETS_ACHIEVEMENT, 1, 1, 1);
 	GameTooltip:AddLine(BATTLE_PETS_ACHIEVEMENT_TOOLTIP, nil, nil, nil, true);
 	GameTooltip:Show();
@@ -1696,7 +1684,6 @@ end
 
 function PetJournalSummonButton_OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-	GameTooltip:SetMinimumWidth(150);
 	GameTooltip:SetText(self:GetText(), 1, 1, 1);
 	GameTooltip:AddLine(BATTLE_PETS_SUMMON_TOOLTIP, nil, nil, nil, true);
 	GameTooltip:Show();
@@ -1748,7 +1735,7 @@ function MountJournal_Pickup(index)
 end
 
 function MountJournal_Dismiss()
-	return C_MountJournal.Dismiss(index);
+	return C_MountJournal.Dismiss();
 end
 
 function MountJournal_Summon(index)
@@ -1826,6 +1813,7 @@ function MountJournal_UpdateCachedList(self)
 	end
 	self.cachedMounts = {};
 	self.sortVal = {};
+	self.numOwned = 0;
 
 	for i=1, MountJournal_GetNumMounts() do
 		local creatureName, spellID, icon, active, isUsable, sourceType, isFavorite, _, _, hideOnChar, isCollected = MountJournal_GetMountInfo(i);
@@ -1833,6 +1821,9 @@ function MountJournal_UpdateCachedList(self)
 		if ( hideOnChar ~= true and MountJournal_MountMatchesFilter(self, creatureName, sourceType, isCollected ) ) then
 			self.cachedMounts[#self.cachedMounts + 1] = i;
 			self.sortVal[i] = MountJournal_GetMountSortVal(self, isUsable, sourceType, isFavorite, isCollected);
+		end
+		if (isCollected and hideOnChar ~= true) then
+			self.numOwned = self.numOwned + 1;
 		end
 	end
 
@@ -2002,7 +1993,7 @@ function MountJournal_UpdateMountList()
 
 	local totalHeight = #MountJournal.cachedMounts * MOUNT_BUTTON_HEIGHT;
 	HybridScrollFrame_Update(scrollFrame, totalHeight, scrollFrame:GetHeight());
-	MountJournal.MountCount.Count:SetText(numMounts);
+	MountJournal.MountCount.Count:SetText(MountJournal.numOwned);
 	if ( not showMounts ) then
 		MountJournal.selectedSpellID = 0;
 		MountJournal_UpdateMountDisplay();
@@ -2105,7 +2096,7 @@ function MountJournal_CollectAvailableFilters()
 		MountJournal.baseFilterTypes[i] = false
 	end
 	for i = 1, MountJournal_GetNumMounts() do
-		sourceType = select(6,MountJournal_GetMountInfo(i))
+		local sourceType = select(6,MountJournal_GetMountInfo(i))
 		MountJournal.baseFilterTypes[sourceType] = true;
 	end
 end
@@ -2198,9 +2189,11 @@ function MountListItem_OnClick(self, button)
 end
 
 function MountJournal_OnSearchTextChanged(self)
+	SearchBoxTemplate_OnTextChanged(self);
+
 	local text = self:GetText();
 	local oldText = MountJournal.searchString;
-	if ( text == "" or text == SEARCH ) then
+	if ( text == "" ) then
 		MountJournal.searchString = nil;
 	else
 		MountJournal.searchString = string.lower(text);
@@ -2290,7 +2283,8 @@ function MountJournalSummonRandomFavoriteButton_OnLoad(self)
 	self.spellID = SUMMON_RANDOM_FAVORITE_MOUNT_SPELL;
 	local spellName, spellSubname, spellIcon = GetSpellInfo(self.spellID);
 	self.texture:SetTexture(spellIcon);
-	self.spellname:SetText(spellName);
+	-- Use the global string instead of the spellName from the db here so that we can have custom newlines in the string
+	self.spellname:SetText(MOUNT_JOURNAL_SUMMON_RANDOM_FAVORITE_MOUNT);
 	self:RegisterForDrag("LeftButton");
 end
 
@@ -2315,7 +2309,7 @@ function MountOptionsMenu_Init(self, level)
 	info.func = function() MountJournal_Summon(MountJournal.menuMountID) end
 	if (MountJournal.menuMountID and MountJournal.active) then
 		info.text = PET_DISMISS;
-		info.func = function() MountJournal_Dismiss(MountJournal.menuMountID) end
+		info.func = function() MountJournal_Dismiss() end
 	end
 	if ( MountJournal.menuMountID and MountJournal.menuIsUsable ) then
 		info.disabled = false;
@@ -2325,7 +2319,11 @@ function MountOptionsMenu_Init(self, level)
 	UIDropDownMenu_AddButton(info, level);
 	info.disabled = nil;
 
-	local isFavorite = MountJournal.menuMountID and MountJournal_GetIsFavorite(MountJournal.menuMountID);
+	local canFavorite = false;
+	local isFavorite = false;
+	if (MountJournal.menuMountID) then
+		 isFavorite, canFavorite = MountJournal_GetIsFavorite(MountJournal.menuMountID);
+	end
 
 	if (isFavorite) then
 		info.text = BATTLE_PET_UNFAVORITE;
@@ -2337,6 +2335,12 @@ function MountOptionsMenu_Init(self, level)
 		info.func = function() 
 			MountJournal_SetIsFavorite(MountJournal.menuMountID, true); 
 		end
+	end
+
+	if (canFavorite) then
+		info.disabled = false;
+	else
+		info.disabled = true;
 	end
 
 	UIDropDownMenu_AddButton(info, level);
@@ -2367,6 +2371,7 @@ end
 
 function ToyBox_OnLoad(self)
 	ToyBox.currentPage = 1;
+	ToyBox.firstCollectedToyID = 0; -- used to track which toy gets the favorite helpbox
 	ToyBox.newToys = {};
 
 	ToyBox_UpdatePages();
@@ -2399,12 +2404,27 @@ function ToyBox_OnEvent(self, event, itemID, new)
 end
 
 function ToyBox_OnShow(self)
+	if(C_ToyBox.HasFavorites()) then 
+		SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_FAVORITE, true);
+		ToyBoxFavoriteHelpBox:Hide();
+	end
+
 	SetPortraitToTexture(PetJournalParentPortrait,"Interface\\Icons\\Trade_Archaeology_ChestofTinyGlassAnimals");	
 	C_ToyBox.FilterToys();
 	ToyBox_UpdatePages();	
 	ToyBox_UpdateProgressBar();
 	ToyBox_UpdateButtons();
 	ToyBoxMicroButtonAlert:Hide();
+end
+
+function ToyBox_OnMouseWheel(self, value, scrollBar)
+	SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_MOUSEWHEEL_PAGING, true);
+	ToyBoxMousewheelPagingHelpBox:Hide();
+	if(value > 0) then
+		ToyBoxPrevPageButton_OnClick()		
+	else
+		ToyBoxNextPageButton_OnClick()
+	end
 end
 
 function ToyBoxOptionsMenu_Init(self, level)
@@ -2423,6 +2443,8 @@ function ToyBoxOptionsMenu_Init(self, level)
 		info.text = BATTLE_PET_FAVORITE;
 		info.func = function() 
 			C_ToyBox.SetIsFavorite(ToyBox.menuItemID, true);
+			SetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_FAVORITE, true);
+			ToyBoxFavoriteHelpBox:Hide();
 		end
 	end
 
@@ -2525,7 +2547,14 @@ function ToySpellButton_UpdateCooldown(self)
 	local cooldown = self.cooldown;
 	local start, duration, enable = GetItemCooldown(self.itemID);
 	if (cooldown and start and duration) then
+		if (enable) then
+			cooldown:Hide();
+		else
+			cooldown:Show();
+		end
 		CooldownFrame_SetTimer(cooldown, start, duration, enable);
+	else
+		cooldown:Hide();
 	end
 end
 
@@ -2543,7 +2572,7 @@ function ToySpellButton_UpdateButton(self)
 	local slotFrameCollected = _G[name.."SlotFrameCollected"];
 	local slotFrameUncollected = _G[name.."SlotFrameUncollected"];
 	local slotFrameUncollectedInnerGlow = _G[name.."SlotFrameUncollectedInnerGlow"];
-	local iconFavoriteTexture = _G[name.."SlotFavorite"];
+	local iconFavoriteTexture = _G[name.."CooldownWrapperSlotFavorite"];
 
 	if (self.itemID == -1) then	
 		self:Hide();		
@@ -2554,11 +2583,19 @@ function ToySpellButton_UpdateButton(self)
 
 	local itemID, toyName, icon = C_ToyBox.GetToyInfo(self.itemID);
 
+	if (itemID == nil) then
+		return;
+	end
+
+	if string.len(toyName) == 0 then
+		toyName = itemID;
+	end
+
 	iconTexture:SetTexture(icon);
 	iconTextureUncollected:SetTexture(icon);
 	iconTextureUncollected:SetDesaturated(true);
-	slotFrameUncollectedInnerGlow:SetAlpha(0.2);
-	iconTextureUncollected:SetAlpha(0.2);
+	slotFrameUncollectedInnerGlow:SetAlpha(0.18);
+	iconTextureUncollected:SetAlpha(0.18);
 	toyString:SetText(toyName);	
 	toyString:Show();
 
@@ -2580,13 +2617,24 @@ function ToySpellButton_UpdateButton(self)
 		iconTexture:Show();
 		iconTextureUncollected:Hide();
 		toyString:SetTextColor(1, 0.82, 0, 1);
+		toyString:SetShadowColor(0, 0, 0, 1);
 		slotFrameCollected:Show();
 		slotFrameUncollected:Hide();
 		slotFrameUncollectedInnerGlow:Hide();
+
+		if(ToyBox.firstCollectedToyID == 0) then
+			ToyBox.firstCollectedToyID = self.itemID;
+		end
+
+		if (ToyBox.firstCollectedToyID == self.itemID and not ToyBoxFavoriteHelpBox:IsVisible() and not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_FAVORITE)) then
+			ToyBoxFavoriteHelpBox:Show();
+			ToyBoxFavoriteHelpBox:SetPoint("TOPLEFT", self, "BOTTOMLEFT", -5, -20);
+		end
 	else
 		iconTexture:Hide();
 		iconTextureUncollected:Show();
-		toyString:SetTextColor(0.32, 0.27, 0.20, 1);
+		toyString:SetTextColor(0.33, 0.27, 0.20, 1);
+		toyString:SetShadowColor(0, 0, 0, 0.33);
 		slotFrameCollected:Hide();
 		slotFrameUncollected:Show();		
 		slotFrameUncollectedInnerGlow:Show();
@@ -2602,6 +2650,7 @@ function ToyBox_GetCurrentPage()
 end
 
 function ToyBox_UpdateButtons()
+	ToyBoxFavoriteHelpBox:Hide();
 	for i = 1,TOYS_PER_PAGE do
 	    local button = _G["ToySpellButton"..i];
 		ToySpellButton_UpdateButton(button);
@@ -2652,29 +2701,38 @@ function ToyBox_UpdateProgressBar()
 end
 
 function ToyBoxPrevPageButton_OnClick()
-	PlaySound("igAbiliityPageTurn");
-	ToyBox.currentPage = math.max(1, ToyBox.currentPage - 1);
-	ToyBox_UpdatePages();
-	ToyBox_UpdateButtons();
+	if (ToyBox.currentPage > 1) then
+		PlaySound("igAbiliityPageTurn");
+		ToyBox.currentPage = math.max(1, ToyBox.currentPage - 1);
+		ToyBox_UpdatePages();
+		ToyBox_UpdateButtons();
+	end
 end
 
 function ToyBoxNextPageButton_OnClick()
-	PlaySound("igAbiliityPageTurn");
-	ToyBox.currentPage = ToyBox.currentPage + 1;
-	ToyBox_UpdatePages();
-	ToyBox_UpdateButtons();
+	local maxPages = 1 + math.floor( math.max((C_ToyBox.GetNumFilteredToys() - 1), 0)/ TOYS_PER_PAGE);
+	if (ToyBox.currentPage < maxPages) then
+		-- show the mousewheel tip after the player's advanced a few pages
+		if(ToyBox.currentPage > 2) then
+			if(not GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_MOUSEWHEEL_PAGING) and GetCVarBitfield("closedInfoFrames", LE_FRAME_TUTORIAL_TOYBOX_FAVORITE)) then
+				ToyBoxMousewheelPagingHelpBox:Show();
+			end
+		end
+
+		PlaySound("igAbiliityPageTurn");
+		ToyBox.currentPage = ToyBox.currentPage + 1;
+		ToyBox_UpdatePages();
+		ToyBox_UpdateButtons();
+	end
 end
 
 function ToyBox_OnSearchTextChanged(self)
-	local text = self:GetText();
+	SearchBoxTemplate_OnTextChanged(self);
 	local oldText = ToyBox.searchString;
-	if ( text == "" or text == SEARCH ) then
-		ToyBox.searchString = "";
-	else
-		ToyBox.searchString = text;
-	end
+	ToyBox.searchString = self:GetText();
 
 	if ( oldText ~= ToyBox.searchString ) then		
+		ToyBox.firstCollectedToyID = 0;
 		C_ToyBox.SetFilterString(ToyBox.searchString);
 		ToyBox_UpdatePages();
 		ToyBox_UpdateButtons();
@@ -2692,6 +2750,7 @@ function ToyBoxFilterDropDown_Initialize(self, level)
 	if level == 1 then
 		info.text = COLLECTED
 		info.func = function(_, _, _, value)
+						ToyBox.firstCollectedToyID = 0;
 						C_ToyBox.SetFilterCollected(value);
 						ToyBox_UpdatePages();
 						ToyBox_UpdateButtons();
@@ -2702,6 +2761,7 @@ function ToyBoxFilterDropDown_Initialize(self, level)
 
 		info.text = NOT_COLLECTED
 		info.func = function(_, _, _, value)
+						ToyBox.firstCollectedToyID = 0;
 						C_ToyBox.SetFilterUncollected(value);
 						ToyBox_UpdatePages();
 						ToyBox_UpdateButtons();
@@ -2727,6 +2787,7 @@ function ToyBoxFilterDropDown_Initialize(self, level)
 		
 			info.text = CHECK_ALL
 			info.func = function()
+							ToyBox.firstCollectedToyID = 0;
 							C_ToyBox.ClearAllSourceTypesFiltered();
 							UIDropDownMenu_Refresh(ToyBoxFilterDropDown, 1, 2);
 							ToyBox_UpdatePages();
@@ -2736,6 +2797,7 @@ function ToyBoxFilterDropDown_Initialize(self, level)
 			
 			info.text = UNCHECK_ALL
 			info.func = function()
+							ToyBox.firstCollectedToyID = 0;
 							C_ToyBox.SetAllSourceTypesFiltered();
 							UIDropDownMenu_Refresh(ToyBoxFilterDropDown, 1, 2);
 							ToyBox_UpdatePages();
@@ -2746,14 +2808,17 @@ function ToyBoxFilterDropDown_Initialize(self, level)
 			info.notCheckable = false;
 			local numSources = C_PetJournal.GetNumPetSources();
 			for i=1,numSources do
-				info.text = _G["BATTLE_PET_SOURCE_"..i];
-				info.func = function(_, _, _, value)
-							C_ToyBox.SetFilterSourceType(i, value);
-							ToyBox_UpdatePages();
-							ToyBox_UpdateButtons();
-						end
-				info.checked = function() return not C_ToyBox.IsSourceTypeFiltered(i) end;
-				UIDropDownMenu_AddButton(info, level);
+				if (i == 1 or i == 2 or i == 3 or i == 4 or i == 7 or i == 8) then -- Drop/Quest/Vendor/Profession/WorldEvent/Promotion
+					info.text = _G["BATTLE_PET_SOURCE_"..i];
+					info.func = function(_, _, _, value)
+								ToyBox.firstCollectedToyID = 0;
+								C_ToyBox.SetFilterSourceType(i, value);
+								ToyBox_UpdatePages();
+								ToyBox_UpdateButtons();
+							end
+					info.checked = function() return not C_ToyBox.IsSourceTypeFiltered(i) end;
+					UIDropDownMenu_AddButton(info, level);
+				end
 			end
 		end
 	end

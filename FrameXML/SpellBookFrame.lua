@@ -509,7 +509,14 @@ function SpellButton_UpdateCooldown(self)
 	if (slot) then
 		local start, duration, enable = GetSpellCooldown(slot, SpellBookFrame.bookType);
 		if (cooldown and start and duration) then
+			if (enable) then
+				cooldown:Hide();
+			else
+				cooldown:Show();
+			end
 			CooldownFrame_SetTimer(cooldown, start, duration, enable);
+		else
+			cooldown:Hide();
 		end
 	end
 end
@@ -753,6 +760,26 @@ function SpellBookNextPageButton_OnClick()
 	end
 	SpellBookFrame_Update();
 end
+
+function SpellBookFrame_OnMouseWheel(self, value, scrollBar)
+	--do nothing if not on an appropriate book type
+	if(SpellBookFrame.bookType ~= BOOKTYPE_SPELL and SpellBookFrame.bookType ~= BOOKTYPE_CORE_ABILITIES) then
+		return;
+	end
+
+	local currentPage, maxPages = SpellBook_GetCurrentPage();
+
+	if(value > 0) then
+		if(currentPage > 1) then
+			SpellBookPrevPageButton_OnClick()
+		end
+	else 
+		if(currentPage < maxPages) then
+			SpellBookNextPageButton_OnClick()
+		end
+	end
+end
+
 
 function SpellBookSkillLineTab_OnClick(self)
 	local id = self:GetID();
@@ -1158,7 +1185,7 @@ SPEC_CORE_ABILITY_DISPLAY[266] = {	172,	686,	6353,	105174,	103958,	122351,	}; --
 SPEC_CORE_ABILITY_DISPLAY[267] = {	348,	17962,	116858,	29722,	17877,		}; --Destruction
 
 SPEC_CORE_ABILITY_DISPLAY[71] = {	100,	167105,	12294,	772,	1680,	163201,	}; --Arms
-SPEC_CORE_ABILITY_DISPLAY[72] = {	100,	23881,	86346,	85288,	100130,	5308,	}; --Fury	
+SPEC_CORE_ABILITY_DISPLAY[72] = {	100,	23881,	85288,	100130,	5308,	}; --Fury	
 SPEC_CORE_ABILITY_DISPLAY[73] = {	100,	23922,	20243,	6572,	112048,	2565,	}; --Protection
 
 function SpellBook_GetCoreAbilityButton(index)
