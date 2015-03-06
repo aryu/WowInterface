@@ -349,7 +349,7 @@ function CharacterSelect_OnKeyDown(self,key)
 			CharacterSelect_Exit();
 		end
 	elseif ( key == "ENTER" ) then
-		if (CharSelectServicesFlowFrame:IsShown() or CharacterSelect.undeleting) then
+		if (CharSelectServicesFlowFrame:IsShown() or CharacterSelect.undeleting or AccountReactivationInProgressDialog:IsShown()) then
 			return;
 		end
 		CharacterSelect_EnterWorld();
@@ -771,7 +771,7 @@ function CharacterSelectButton_OnDoubleClick(self)
 	if ( id ~= CharacterSelect.selectedIndex ) then
 		CharacterSelect_SelectCharacter(id);
 	end
-	if (not CharacterSelect.undeleting) then
+	if (not CharacterSelect.undeleting and not AccountReactivationInProgressDialog:IsShown()) then
 		CharacterSelect_EnterWorld();
 	end
 end
@@ -1472,21 +1472,25 @@ function CharacterSelect_UpdateButtonState()
 	local servicesEnabled = not CharSelectServicesFlowFrame:IsShown();
 	local undeleting = CharacterSelect.undeleting;
 	local undeleteEnabled, undeleteOnCooldown = GetCharacterUndeleteStatus();
+	local redemptionInProgress = AccountReactivationInProgressDialog:IsShown();
 
 	local boostInProgress = select(18,GetCharacterInfo(GetCharacterSelection()));
-	CharSelectEnterWorldButton:SetEnabled(servicesEnabled and not undeleting and not boostInProgress);
+	CharSelectEnterWorldButton:SetEnabled(servicesEnabled and not undeleting and not boostInProgress and not redemptionInProgress);
 	CharacterSelectBackButton:SetEnabled(servicesEnabled and not undeleting and not boostInProgress);
-	CharacterSelectDeleteButton:SetEnabled(servicesEnabled and not undeleting);
-	CharSelectChangeRealmButton:SetEnabled(servicesEnabled and not undeleting);
-	CharSelectUndeleteCharacterButton:SetEnabled(servicesEnabled and undeleteEnabled and not undeleteOnCooldown);
-	CharacterSelectAddonsButton:SetEnabled(servicesEnabled and not undeleting);
-	CopyCharacterButton:SetEnabled(servicesEnabled and not undeleting);
-	ActivateFactionChange:SetEnabled(servicesEnabled and not undeleting);
-	ActivateFactionChange.texture:SetDesaturated(not (servicesEnabled and not undeleting));
-	CharacterTemplatesFrame.CreateTemplateButton:SetEnabled(servicesEnabled and not undeleting);
-	CharacterSelectMenuButton:SetEnabled(servicesEnabled);
-	CharSelectCreateCharacterButton:SetEnabled(servicesEnabled);
-	StoreButton:SetEnabled(servicesEnabled and not undeleting);
+	CharacterSelectDeleteButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	CharSelectChangeRealmButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	CharSelectUndeleteCharacterButton:SetEnabled(servicesEnabled and undeleteEnabled and not undeleteOnCooldown and not redemptionInProgress);
+	CharacterSelectAddonsButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	CopyCharacterButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	ActivateFactionChange:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	ActivateFactionChange.texture:SetDesaturated(not (servicesEnabled and not undeleting and not redemptionInProgress));
+	CharacterTemplatesFrame.CreateTemplateButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	CharacterSelectMenuButton:SetEnabled(servicesEnabled and not redemptionInProgress);
+	CharSelectCreateCharacterButton:SetEnabled(servicesEnabled and not redemptionInProgress);
+	StoreButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
+	CharacterServicesTokenNormal:SetEnabled(not redemptionInProgress);
+	CharacterServicesTokenWoDFree:SetEnabled(not redemptionInProgress);
+	CharSelectAccountUpgradeButton:SetEnabled(not redemptionInProgress);
 end
 
 -- CHARACTER UNDELETE
