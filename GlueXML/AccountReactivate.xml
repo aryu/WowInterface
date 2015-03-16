@@ -94,7 +94,7 @@
 					</Anchors>
 					<TexCoords left="0.50878906" right="0.79980469" top="0.63085938" bottom="0.63281250"/>	
 				</Texture>
-				<FontString parentKey="Notice" inherits="GameFontRed" text="ACCOUNT_REACTIVATE_LOGOUT_NOTICE">
+				<FontString parentKey="Notice" inherits="GameFontGreen" text="ACCOUNT_REACTIVATE_LOGOUT_NOTICE">
 					<Size x="300" y="0"/>
 					<Anchors>
 						<Anchor point="TOP" x="0" y="-8" relativeKey="$parent.Line" relativePoint="BOTTOM"/>
@@ -149,6 +149,12 @@
 						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Price" relativePoint="BOTTOMRIGHT"  x="0" y="-18"/>
 					</Anchors>
 				</FontString>
+				<FontString parentKey="LogoutNotice" inherits="GameFontGreen" text="ACCOUNT_REACTIVATE_LOGOUT_NOTICE">
+					<Size x="386" y="0"/>
+					<Anchors>
+						<Anchor point="TOP" relativeKey="$parent.Remaining" relativePoint="BOTTOM" x="0" y="-16"/>
+					</Anchors>
+				</FontString>
 				<FontString parentKey="CautionText" inherits="GameFontRed" hidden="true">
 					<Anchors>
 						<Anchor point="BOTTOM" x="0" y="26"/>
@@ -160,7 +166,7 @@
 			<Button parentKey="Accept" inherits="GlueDialogButtonTemplate" text="ACCEPT">
 				<Size x="132" y="44"/>
 				<Anchors>
-					<Anchor point="TOPRIGHT" relativeKey="$parent.Remaining" relativePoint="BOTTOM" x="-4" y="-20"/>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.LogoutNotice" relativePoint="BOTTOM" x="-4" y="-8"/>
 				</Anchors>
 				<Scripts>
 					<OnClick>
@@ -188,7 +194,7 @@
 		</Frames>
 		<Scripts>
 			<OnShow>
-				self:SetHeight( 60 + self.Description:GetHeight() + 96 + self.Accept:GetHeight() + 20 );
+				self:SetHeight( 60 + self.Description:GetHeight() + 96 + self.Accept:GetHeight() + self.LogoutNotice:GetHeight() + 20 );
 			</OnShow>
 			<OnHide>
 				if (self.ticker) then
@@ -225,13 +231,19 @@
 						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Description" relativePoint="BOTTOMRIGHT"  x="0" y="-28"/>
 					</Anchors>
 				</FontString>
+				<FontString parentKey="LogoutNotice" inherits="GameFontGreen" text="ACCOUNT_REACTIVATE_LOGOUT_NOTICE">
+					<Size x="386" y="0"/>
+					<Anchors>
+						<Anchor point="TOP" relativeKey="$parent.Expires" relativePoint="BOTTOM" x="0" y="-16"/>
+					</Anchors>
+				</FontString>
 			</Layer>
 		</Layers>
 		<Frames>
 			<Button parentKey="Accept" inherits="GlueDialogButtonTemplate" text="ACCEPT">
 				<Size x="192" y="44"/>
 				<Anchors>
-					<Anchor point="TOPRIGHT" relativeKey="$parent.Expires" relativePoint="BOTTOM" x="-6" y="-20"/>
+					<Anchor point="TOPRIGHT" relativeKey="$parent.LogoutNotice" relativePoint="BOTTOM" x="-6" y="-8"/>
 				</Anchors>
 				<Scripts>
 					<OnClick>
@@ -259,7 +271,7 @@
 		</Frames>
 		<Scripts>
 			<OnLoad>
-				self:SetHeight( 64 + self.Description:GetHeight() + 56 + self.Accept:GetHeight() + 16 );
+				self:SetHeight( 64 + self.Description:GetHeight() + 56 + self.Accept:GetHeight() + self.LogoutNotice:GetHeight() + 16 );
 			</OnLoad>
 		</Scripts>
 	</Frame>

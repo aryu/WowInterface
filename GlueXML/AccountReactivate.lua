@@ -32,6 +32,7 @@ function ReactivateAccountDialog_OnLoad(self)
 	self:RegisterEvent("TOKEN_BUY_CONFIRM_REQUIRED");
 	self:RegisterEvent("TOKEN_REDEEM_CONFIRM_REQUIRED");
 	self:RegisterEvent("TOKEN_STATUS_CHANGED");
+	self:RegisterEvent("TOKEN_REDEEM_RESULT");
 end
 
 function GetTimeLeftMinuteString(minutes)
@@ -120,6 +121,8 @@ function ReactivateAccountDialog_OnEvent(self, event, ...)
 		if (self:IsShown()) then
 			ReactivateAccountDialog_Open();
 		end
+	elseif (event == "TOKEN_REDEEM_RESULT") then
+		AccountReactivationInProgressDialog:Hide();
 	end
 end
 

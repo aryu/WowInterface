@@ -394,6 +394,7 @@ CHAR_DELETE_FAILED = "Character deletion failed";
 CHAR_DELETE_FAILED_ARENA_CAPTAIN = "This character is an Arena Captain and cannot be deleted until the rank is transferred to another character.";
 CHAR_DELETE_FAILED_GUILD_LEADER = "This character is a Guild Master and cannot be deleted until the rank is transferred to another character.";
 CHAR_DELETE_FAILED_HAS_HEIRLOOM_OR_MAIL = "This character has mail or has a heirloom item in their inventory, bank, or void storage and cannot be deleted.";
+CHAR_DELETE_FAILED_HAS_WOW_TOKEN = "This character cannot be deleted while a WoW Token is in their inventory, mailbox, or on the auction house.";
 CHAR_DELETE_FAILED_LOCKED_FOR_TRANSFER = "You cannot log in until the character update process you recently initiated is complete.  ";
 CHAR_DELETE_IN_PROGRESS = "Deleting character";
 CHAR_DELETE_SUCCESS = "Character deleted";

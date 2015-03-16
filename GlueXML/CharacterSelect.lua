@@ -487,15 +487,13 @@ function CharacterSelect_OnEvent(self, event, ...)
 			CharacterSelect_CheckVeteranStatus();
 		end
 	elseif ( event == "TOKEN_CAN_VETERAN_BUY_UPDATE" ) then
-		CAN_BUY_RESULT_FOUND = true;
+		local result = ...;
+		CAN_BUY_RESULT_FOUND = result;
 		CharacterSelect_CheckVeteranStatus();
 	elseif ( event == "TOKEN_MARKET_PRICE_UPDATED" ) then
 		local result = ...;
-		-- TODO: Use lua enum
-		if (result == 1) then
-			MARKET_PRICE_UPDATED = true;
-			CharacterSelect_CheckVeteranStatus();
-		end
+		MARKET_PRICE_UPDATED = result;
+		CharacterSelect_CheckVeteranStatus();
 	end
 end
 
@@ -760,9 +758,6 @@ function CharacterSelectButton_OnClick(self)
 	local id = self:GetID() + CHARACTER_LIST_OFFSET;
 	if ( id ~= CharacterSelect.selectedIndex ) then
 		CharacterSelect_SelectCharacter(id);
-		if ( self.isVeteranLocked ) then
-			SubscriptionRequestDialog_Open();
-		end
 	end
 end
 
@@ -1452,8 +1447,35 @@ function CharacterSelect_UpdateStoreButton()
 	end
 end
 
+GlueDialogTypes["TOKEN_GAME_TIME_OPTION_NOT_AVAILABLE"] = {
+	text = ACCOUNT_REACTIVATE_OPTION_UNAVAILABLE,
+	button1 = OKAY,
+	escapeHides = true,
+}
+
 function CharacterSelect_CheckVeteranStatus()
-	if (IsVeteranTrialAccount() and TOKEN_COUNT_UPDATED and (C_WowTokenGlue.GetTokenCount() > 0 or CAN_BUY_RESULT_FOUND and MARKET_PRICE_UPDATED)) then
+	if (IsVeteranTrialAccount() and TOKEN_COUNT_UPDATED and ((C_WowTokenGlue.GetTokenCount() > 0 or CAN_BUY_RESULT_FOUND) and MARKET_PRICE_UPDATED)) then
+		if (MARKET_PRICE_UPDATED ~= LE_TOKEN_RESULT_SUCCESS) then
+			ReactivateAccountDialog:Hide();
+			return;
+		elseif (C_WowTokenGlue.GetTokenCount() == 0) then
+			if (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS_NO) then
+				if (ReactivateAccountDialog:IsShown()) then
+					ReactivateAccountDialog:Hide();
+					GlueDialog_Show("TOKEN_GAME_TIME_OPTION_NOT_AVAILABLE");
+				end
+				return;
+			elseif (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_ERROR_TRANSACTION_IN_PROGRESS) then
+				ReactivateAccountDialog:Hide();
+				AccountReactivationInProgressDialog:Show();
+				CharacterSelect_UpdateButtonState();
+				return;
+			elseif (CAN_BUY_RESULT_FOUND ~= LE_TOKEN_RESULT_SUCCESS) then
+				ReactivateAccountDialog:Hide();
+				return;
+			end
+		end
+
 		ReactivateAccountDialog_Open();
 	elseif (IsVeteranTrialAccount()) then
 		if (not TOKEN_COUNT_UPDATED) then
