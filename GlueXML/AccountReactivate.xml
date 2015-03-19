@@ -171,7 +171,7 @@
 				<Scripts>
 					<OnClick>
 						PlaySound("gsTitleOptionOK");
-						C_WowTokenSecure.ConfirmBuyToken();
+						C_WowTokenSecure.ConfirmBuyToken(true);
 						AccountReactivationInProgressDialog:Show();
 						CharacterSelect_UpdateButtonState();
 						self:GetParent():Hide();
@@ -186,6 +186,7 @@
 				<Scripts>
 					<OnClick>
 						PlaySound("gsTitleOptionExit");
+						C_WowTokenSecure.ConfirmBuyToken(false);
 						self:GetParent():Hide();
 						ReactivateAccountDialog_Open();
 					</OnClick>

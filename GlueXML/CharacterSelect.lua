@@ -1213,10 +1213,6 @@ function GetIndexFromCharID(charID)
 	return 0;
 end
 
-VETERAN_FEATURE_1 = "Continue where you left off!"
-VETERAN_FEATURE_2 = "Reunite with your friends!"
-VETERAN_FEATURE_3 = "Revive your hero"
-
 ACCOUNT_UPGRADE_FEATURES = {
 	VETERAN = { [1] = { icon = "Interface\\Icons\\achievement_bg_returnxflags_def_wsg", text = VETERAN_FEATURE_1 },
 		  [2] = { icon = "Interface\\Icons\\achievement_reputation_01", text = VETERAN_FEATURE_2 },
