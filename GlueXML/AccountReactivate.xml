@@ -57,7 +57,7 @@
 					<Anchor point="TOP" relativeKey="$parent.Description" relativePoint="BOTTOM" x="0" y="-4"/>
 				</Anchors>
 				<Scripts>
-					<OnClick function="ReactivateAccountDialog_OnAccept"/>
+					<OnClick function="ReactivateAccountDialog_OnReactivate"/>
 				</Scripts>
 			</Button>
 		</Frames>
@@ -291,36 +291,59 @@
 						<Anchor point="TOPRIGHT" x="-32" y="-24"/>
 					</Anchors>
 				</FontString>
+				<FontString parentKey="ButtonDivider" inherits="GlueFontNormal" text="ACCOUNT_REACTIVATE_BUTTON_DIVIDER">
+					<Size x="400" y="12"/>
+					<Anchors>
+						<Anchor point="TOP" relativeKey="$parent.Text" relativePoint="BOTTOM" x="0" y="-54"/>
+					</Anchors>
+					<Color r="0.5" g="0.5" b="0.5"/>
+				</FontString>
 			</Layer>
 		</Layers>
 		<Frames>
 			<Button parentKey="Accept" inherits="GlueDialogButtonTemplate" text="REACTIVATE_ACCOUNT_NOW">
 				<Size x="250" y="44"/>
 				<Anchors>
-					<Anchor point="TOPRIGHT" relativeKey="$parent.Text"  relativePoint="BOTTOM" x="48" y="-16"/>
+					<Anchor point="TOP" relativeKey="$parent.Text"  relativePoint="BOTTOM" x="0" y="-16"/>
 				</Anchors>
 				<Scripts>
 					<OnClick function="AccountReactivate_ReactivateNow"/>
 				</Scripts>
 			</Button>
-			<Button parentKey="Cancel" inherits="GlueDialogButtonTemplate" text="ACCOUNT_REACTIVATE_CANCEL">
-				<Size x="160" y="44"/>
+			<Button parentKey="Reactivate" inherits="GluePanelButtonTemplate" motionScriptsWhileDisabled="true">
+				<Size x="320" y="48"/>
 				<Anchors>
-					<Anchor point="LEFT" relativeKey="$parent.Accept" relativePoint="RIGHT" x="-8" y="0"/>
+					<Anchor point="TOP" relativeKey="$parent.ButtonDivider" relativePoint="BOTTOM" x="0" y="-4"/>
+				</Anchors>
+				<Scripts>
+					<OnClick function="ReactivateAccountDialog_OnReactivate"/>
+					<OnEnter>
+						if (self.tooltip) then
+							GlueTooltip:SetOwner(self);
+							GlueTooltip:SetText(self.tooltip, nil, nil, nil, nil, true);
+							GlueTooltip:Show();
+						end
+					</OnEnter>
+					<OnLeave>
+						GlueTooltip:Hide();
+					</OnLeave>
+				</Scripts>
+			</Button>
+			<Button parentKey="CloseButton" inherits="GlueCloseButton">
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset>
+							<AbsDimension x="-3" y="-3"/>
+						</Offset>
+					</Anchor>
 				</Anchors>
 				<Scripts>
 					<OnClick>
 						PlaySound("gsTitleOptionExit");
 						self:GetParent():Hide();
-						ReactivateAccountDialog_Open();
 					</OnClick>
 				</Scripts>
 			</Button>
 		</Frames>
-		<Scripts>
-			<OnLoad>
-				self:SetHeight(self.Text:GetHeight() + 16 + self.Accept:GetHeight() + 40);
-			</OnLoad>
-		</Scripts>
 	</Frame>
 </Ui>

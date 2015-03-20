@@ -822,6 +822,7 @@ function CharacterSelect_SelectCharacter(index, noCreate)
 		local charID = GetCharIDFromIndex(index);
 		SelectCharacter(charID);
 
+		ReactivateAccountDialog_Open();
 		local backgroundFileName = GetSelectBackgroundModel(charID);
 		CharacterSelect.currentBGTag = SetBackgroundModel(CharacterSelectModel, backgroundFileName);
 	end
@@ -1451,27 +1452,6 @@ GlueDialogTypes["TOKEN_GAME_TIME_OPTION_NOT_AVAILABLE"] = {
 
 function CharacterSelect_CheckVeteranStatus()
 	if (IsVeteranTrialAccount() and TOKEN_COUNT_UPDATED and ((C_WowTokenGlue.GetTokenCount() > 0 or CAN_BUY_RESULT_FOUND) and MARKET_PRICE_UPDATED)) then
-		if (MARKET_PRICE_UPDATED ~= LE_TOKEN_RESULT_SUCCESS) then
-			ReactivateAccountDialog:Hide();
-			return;
-		elseif (C_WowTokenGlue.GetTokenCount() == 0) then
-			if (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS_NO) then
-				if (ReactivateAccountDialog:IsShown()) then
-					ReactivateAccountDialog:Hide();
-					GlueDialog_Show("TOKEN_GAME_TIME_OPTION_NOT_AVAILABLE");
-				end
-				return;
-			elseif (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_ERROR_TRANSACTION_IN_PROGRESS) then
-				ReactivateAccountDialog:Hide();
-				AccountReactivationInProgressDialog:Show();
-				CharacterSelect_UpdateButtonState();
-				return;
-			elseif (CAN_BUY_RESULT_FOUND ~= LE_TOKEN_RESULT_SUCCESS) then
-				ReactivateAccountDialog:Hide();
-				return;
-			end
-		end
-
 		ReactivateAccountDialog_Open();
 	elseif (IsVeteranTrialAccount()) then
 		if (not TOKEN_COUNT_UPDATED) then
