@@ -2,7 +2,7 @@ function AccountReactivate_ReactivateNow()
 	PlaySound("gsTitleOptionOK");
 	
 	-- open web page
-	LoadURLIndex(2);
+	LoadURLIndex(22);
 end
 
 function AccountReactivate_Cancel()
@@ -10,12 +10,21 @@ function AccountReactivate_Cancel()
 	PlaySound("gsTitleOptionExit");
 end
 
-function AccountReactivate_CloseDialogs()
+function AccountReactivate_CloseDialogs(preserveSubscription)
 	ReactivateAccountDialog:Hide();
 	AccountReactivationInProgressDialog:Hide();
+	if (GoldReactivateConfirmationDialog:IsShown()) then
+		C_WowTokenSecure.ConfirmBuyToken(false);
+	end
 	GoldReactivateConfirmationDialog:Hide();
+	if (TokenReactivateConfirmationDialog:IsShown()) then
+		C_WowTokenSecure.CancelRedeem();
+	end
 	TokenReactivateConfirmationDialog:Hide();
-	SubscriptionRequestDialog:Hide();
+	if (not preserveSubscription) then
+		SubscriptionRequestDialog:Hide();
+	end
+	CharacterSelect_UpdateButtonState();
 end
 
 function ReactivateAccountDialog_OnLoad(self)
@@ -24,6 +33,7 @@ function ReactivateAccountDialog_OnLoad(self)
 	self:RegisterEvent("TOKEN_REDEEM_CONFIRM_REQUIRED");
 	self:RegisterEvent("TOKEN_STATUS_CHANGED");
 	self:RegisterEvent("TOKEN_REDEEM_RESULT");
+	self:RegisterEvent("TOKEN_BUY_RESULT");
 	self:RegisterEvent("TOKEN_MARKET_PRICE_UPDATED");
 end
 
@@ -61,6 +71,12 @@ function GetTimeLeftMinuteString(minutes)
 	return str;
 end
 
+GlueDialogTypes["TOKEN_ERROR_HAS_OCCURRED"] = {
+	text = BLIZZARD_STORE_ERROR_MESSAGE_BATTLEPAY_DISABLED,
+	button1 = OKAY,
+	escapeHides = true,
+}
+
 function ReactivateAccountDialog_OnEvent(self, event, ...)
 	if (event == "TOKEN_BUY_CONFIRM_REQUIRED") then
 		local dialog = GoldReactivateConfirmationDialog;
@@ -71,8 +87,10 @@ function ReactivateAccountDialog_OnEvent(self, event, ...)
 			local newTime = now + (30 * 24 * 60 * 60); -- 30 days * 24 hours * 60 minutes * 60 seconds
 
 			local newDate = date("*t", newTime);
+			dialog.Description:SetText(ACCOUNT_REACTIVATE_DESC);
 			dialog.Expires:SetText(ACCOUNT_REACTIVATE_EXPIRATION:format(newDate.month, newDate.day, newDate.year));
 		else
+			dialog.Description:SetText(ACCOUNT_REACTIVATE_DESC_MINUTES);
 			dialog.Expires:SetText(ACCOUNT_REACTIVATE_EXPIRATION_MINUTES:format(GetTimeLeftMinuteString(2700)));
 		end
 		dialog.Price:SetText(ACCOUNT_REACTIVATE_GOLD_PRICE:format(GetMoneyString(C_WowTokenPublic.GetGuaranteedPrice(), true)));
@@ -87,6 +105,7 @@ function ReactivateAccountDialog_OnEvent(self, event, ...)
 					dialog.ticker = nil;
 					dialog:Hide();
 					self:Show();
+					CharacterSelect_UpdateButtonState();
 				elseif (dialog.remainingDialogTime <= 20) then
 					dialog.CautionText:SetText(TOKEN_PRICE_LOCK_EXPIRE:format(dialog.remainingDialogTime));
 					dialog.CautionText:Show();
@@ -102,6 +121,7 @@ function ReactivateAccountDialog_OnEvent(self, event, ...)
 		end
 		dialog:Show();
 		ReactivateAccountDialog:Hide();
+		CharacterSelect_UpdateButtonState();
 	elseif (event == "TOKEN_REDEEM_CONFIRM_REQUIRED") then
 		local now = time();
 		local newTime = now + (30 * 24 * 60 * 60); -- 30 days * 24 hours * 60 minutes * 60 seconds
@@ -111,27 +131,70 @@ function ReactivateAccountDialog_OnEvent(self, event, ...)
 		dialog.Expires:SetText(ACCOUNT_REACTIVATE_EXPIRATION:format(newDate.month, newDate.day, newDate.year));
 		dialog:Show();
 		ReactivateAccountDialog:Hide();
+		CharacterSelect_UpdateButtonState();
 	elseif (event == "TOKEN_STATUS_CHANGED") then
-		if (self:IsShown()) then
-			ReactivateAccountDialog_Open();
+		if (not C_WowTokenPublic.GetCommerceSystemStatus()) then
+			AccountReactivate_CloseDialogs(true);
+			if (SubscriptionRequestDialog:IsShown()) then
+				SubscriptionRequestDialog_Open();
+			end
+		else
+			AccountReactivate_RecheckEligibility();
 		end
 	elseif (event == "TOKEN_REDEEM_RESULT") then
 		AccountReactivationInProgressDialog:Hide();
+		CharacterSelect_UpdateButtonState();
 	elseif (event == "TOKEN_MARKET_PRICE_UPDATED") then
+		local result = ...;
+		if (result == LE_TOKEN_RESULT_ERROR_DISABLED) then
+			AccountReactivate_CloseDialogs(true);
+			if (SubscriptionRequestDialog:IsShown()) then
+				SubscriptionRequestDialog_Open();
+			end
+			return;
+		end
 		if (ReactivateAccountDialog:IsShown()) then
 			ReactivateAccountDialog_Open();
 		elseif (SubscriptionRequestDialog:IsShown()) then
 			SubscriptionRequestDialog_Open();
 		end
+	elseif (event == "TOKEN_BUY_RESULT") then
+		local result = ...;
+		if (result ~= LE_TOKEN_RESULT_SUCCESS) then
+			GlueDialog_Show("TOKEN_ERROR_HAS_OCCURRED");
+			if (AccountReactivationInProgressDialog:IsShown()) then
+				AccountReactivationInProgressDialog:Hide();
+			end
+			CharacterSelect_UpdateButtonState();
+		end
 	end
+end
+
+function ReactivateAccountDialog_CanOpen()
+	if (AccountReactivationInProgressDialog:IsShown()) then
+		return false;
+	elseif (not select(20, GetCharacterInfo(GetCharacterSelection()))) then
+		return false;
+	elseif (not C_WowTokenPublic.GetCommerceSystemStatus()) then
+		return false;
+	elseif (SubscriptionRequestDialog:IsShown()) then
+		return false;
+	elseif (TokenReactivateConfirmationDialog:IsShown()) then
+		return false;
+	elseif (GoldReactivateConfirmationDialog:IsShown()) then
+		return false;
+	elseif (CharacterSelect.undeleting) then
+		return false;
+	elseif (not CharacterSelect_HasVeteranEligibilityInfo()) then
+		return false;
+	end
+
+	return true;
 end
 
 function ReactivateAccountDialog_Open()
 	local self = ReactivateAccountDialog;
-	if (AccountReactivationInProgressDialog:IsShown() or not select(20,GetCharacterInfo(GetCharacterSelection())) or 
-		SubscriptionRequestDialog:IsShown() or 
-		TokenReactivateConfirmationDialog:IsShown() or 
-		GoldReactivateConfirmationDialog:IsShown()) then
+	if (not ReactivateAccountDialog_CanOpen()) then
 		self:Hide();
 		return;
 	end
@@ -157,28 +220,31 @@ function ReactivateAccountDialog_Open()
 			self.Description:SetText(ACCOUNT_REACTIVATE_GOLD_DESC_MINUTES);
 			self.Accept:SetText(ACCOUNT_REACTIVATE_ACCEPT_MINUTES:format(GetMoneyString(C_WowTokenPublic.GetCurrentMarketPrice(), true)));
 		end
+		ReactivateAccount_CreatePriceUpdateTicker();
 		self.Accept:SetEnabled(C_WowTokenPublic.GetCurrentMarketPrice() > 0);
 		self:Show();
 	else
 		self:Hide();
 	end
+	CharacterSelect_UpdateButtonState();
 end
 
 function SubscriptionRequestDialog_Open()
 	if (AccountReactivationInProgressDialog:IsShown()) then
 		return;
 	end
-	AccountReactivate_CloseDialogs();
+	AccountReactivate_CloseDialogs(true);
 	local self = SubscriptionRequestDialog;
-	local redeemIndex = select(3, C_WowTokenPublic.GetCommerceSystemStatus());
-	if (C_WowTokenGlue.GetTokenCount() > 0) then
+	local enabled, _, redeemIndex = C_WowTokenPublic.GetCommerceSystemStatus();
+
+	if (C_WowTokenGlue.GetTokenCount() > 0 and enabled) then
 		self.redeem = true;
 		self.Reactivate:SetText(ACCOUNT_REACTIVATE_TOKEN_ACCEPT);
 		self.ButtonDivider:Show();
 		self.Reactivate:Show();
 		self.Reactivate:Enable();
 		self:SetHeight(self.Text:GetHeight() + 16 + self.ButtonDivider:GetHeight() + self.Accept:GetHeight() + 40 + self.Reactivate:GetHeight());
-	elseif (C_WowTokenGlue.CanVeteranBuy()) then	
+	elseif (C_WowTokenGlue.CanVeteranBuy() and C_WowTokenPublic.GetCurrentMarketPrice() and enabled) then	
 		self.redeem = false;
 		if (redeemIndex == LE_CONSUMABLE_TOKEN_REDEEM_FOR_SUB_AMOUNT_30_DAYS) then
 			self.Reactivate:SetText(ACCOUNT_REACTIVATE_ACCEPT:format(GetMoneyString(C_WowTokenPublic.GetCurrentMarketPrice(), true)));
@@ -189,7 +255,7 @@ function SubscriptionRequestDialog_Open()
 		self.Reactivate:Show();
 		self.Reactivate:SetEnabled(C_WowTokenPublic.GetCurrentMarketPrice() > 0);
 		self:SetHeight(self.Text:GetHeight() + 16 + self.ButtonDivider:GetHeight() + self.Accept:GetHeight() + 40 + self.Reactivate:GetHeight());
-	elseif (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS_NO) then
+	elseif (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS_NO and enabled) then
 		self.Reactivate.tooltip = ERR_NOT_ENOUGH_GOLD;
 		if (redeemIndex == LE_CONSUMABLE_TOKEN_REDEEM_FOR_SUB_AMOUNT_30_DAYS) then
 			self.Reactivate:SetText(ACCOUNT_REACTIVATE_ACCEPT:format(GetMoneyString(C_WowTokenPublic.GetCurrentMarketPrice(), true)));
@@ -208,7 +274,10 @@ function SubscriptionRequestDialog_Open()
 	
 	
 	self:Show();
-	ReactivateAccount_UpdateMarketPrice();
+	if (not C_WowTokenPublic.GetCurrentMarketPrice()) then
+		ReactivateAccount_UpdateMarketPrice();
+	end
+	CharacterSelect_UpdateButtonState();
 end
 
 function ReactivateAccountDialog_OnReactivate(self)
@@ -219,6 +288,18 @@ function ReactivateAccountDialog_OnReactivate(self)
 		C_WowTokenPublic.BuyToken();
 	end
 	self:GetParent():Hide();
+end
+ 
+function ReactivateAccount_CreatePriceUpdateTicker()
+	local self = ReactivateAccountDialog;
+	local _, pollTimeSeconds = C_WowTokenPublic.GetCommerceSystemStatus();
+	if (not self.priceUpdateTimer or pollTimeSeconds ~= self.priceUpdateTimer.pollTimeSeconds) then
+		if (self.priceUpdateTimer) then
+			self.priceUpdateTimer:Cancel();
+		end
+		self.priceUpdateTimer = C_Timer.NewTicker(pollTimeSeconds, ReactivateAccount_UpdateMarketPrice);
+		self.priceUpdateTimer.pollTimeSeconds = pollTimeSeconds;
+	end
 end
 
 function ReactivateAccount_UpdateMarketPrice()
@@ -239,4 +320,18 @@ function ReactivateAccount_UpdateMarketPrice()
 			self.priceUpdateTimer = nil;
 		end
 	end
+end
+
+function AccountReactivate_RecheckEligibility()
+	if (MARKET_PRICE_UPDATED == LE_TOKEN_RESULT_SUCCESS and (CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS or CAN_BUY_RESULT_FOUND == LE_TOKEN_RESULT_SUCCESS_NO) and TOKEN_COUNT_UPDATED) then
+		if (SubscriptionRequestDialog:IsShown()) then
+			SubscriptionRequestDialog_Open();
+		else
+			ReactivateAccountDialog_Open();
+		end
+		return;
+	end
+	CAN_BUY_RESULT_FOUND = false;
+	TOKEN_COUNT_UPDATED = false;
+	CharacterSelect_CheckVeteranStatus();
 end

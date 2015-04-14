@@ -28,7 +28,6 @@ BLIZZCON_IS_A_GO = false;
 local STORE_IS_LOADED = false;
 local ADDON_LIST_RECEIVED = false;
 CAN_BUY_RESULT_FOUND = false;
-MARKET_PRICE_UPDATED = false;
 TOKEN_COUNT_UPDATED = false;
 
 function CharacterSelect_OnLoad(self)
@@ -78,6 +77,8 @@ end
 function CharacterSelect_OnShow()
 	DebugLog("Select_OnShow");
 	CHARACTER_LIST_OFFSET = 0;
+	CharacterSelect_ResetVeteranStatus();
+
 	-- request account data times from the server (so we know if we should refresh keybindings, etc...)
 	CheckCharacterUndeleteCooldown();
 	
@@ -231,6 +232,7 @@ function CharacterSelect_OnHide(self)
 	CharacterSelect_SaveCharacterOrder();
 	CharacterDeleteDialog:Hide();
 	CharacterRenameDialog:Hide();
+	AccountReactivate_CloseDialogs();
 	if ( DeclensionFrame ) then
 		DeclensionFrame:Hide();
 	end
@@ -349,7 +351,7 @@ function CharacterSelect_OnKeyDown(self,key)
 			CharacterSelect_Exit();
 		end
 	elseif ( key == "ENTER" ) then
-		if (CharSelectServicesFlowFrame:IsShown() or CharacterSelect.undeleting or AccountReactivationInProgressDialog:IsShown()) then
+		if (not CharacterSelect_AllowedToEnterWorld()) then
 			return;
 		end
 		CharacterSelect_EnterWorld();
@@ -492,7 +494,6 @@ function CharacterSelect_OnEvent(self, event, ...)
 		CharacterSelect_CheckVeteranStatus();
 	elseif ( event == "TOKEN_MARKET_PRICE_UPDATED" ) then
 		local result = ...;
-		MARKET_PRICE_UPDATED = result;
 		CharacterSelect_CheckVeteranStatus();
 	end
 end
@@ -600,13 +601,13 @@ function UpdateCharacterList(skipSelect)
 				_G["CharSelectCharacterButton"..index.."ButtonTextLocation"]:SetFontObject("GlueFontHighlightSmall");
 				_G["CharSelectCharacterButton"..index.."ButtonTextLocation"]:SetText(CHARACTER_UPGRADE_CHARACTER_LIST_LABEL);
 			else
-				if ( locked ) then
+				if ( CharacterSelect.undeleting ) then
+					_G["CharSelectCharacterButton"..index.."ButtonTextInfo"]:SetFormattedText(CHARACTER_SELECT_INFO_DELETED, level, class);
+				elseif ( locked ) then
 					_G["CharSelectCharacterButton"..index.."ButtonTextInfo"]:SetFormattedText(CHARACTER_SELECT_INFO..CHARSELECT_CHAR_INACTIVE_CHAR, level, class);
 					button.isVeteranLocked = true;
 				elseif( ghost ) then
 					_G["CharSelectCharacterButton"..index.."ButtonTextInfo"]:SetFormattedText(CHARACTER_SELECT_INFO_GHOST, level, class);
-				elseif ( CharacterSelect.undeleting ) then
-					_G["CharSelectCharacterButton"..index.."ButtonTextInfo"]:SetFormattedText(CHARACTER_SELECT_INFO_DELETED, level, class);
 				else
 					_G["CharSelectCharacterButton"..index.."ButtonTextInfo"]:SetFormattedText(CHARACTER_SELECT_INFO, level, class);
 				end
@@ -688,6 +689,9 @@ function UpdateCharacterList(skipSelect)
 
 	CharacterSelect_UpdateStoreButton();
 
+	CharacterSelect_ResetVeteranStatus();
+	CharacterSelect_CheckVeteranStatus();
+
 	CharacterSelect.createIndex = 0;
 
 	CharSelectCreateCharacterButton:Hide();
@@ -766,7 +770,7 @@ function CharacterSelectButton_OnDoubleClick(self)
 	if ( id ~= CharacterSelect.selectedIndex ) then
 		CharacterSelect_SelectCharacter(id);
 	end
-	if (not CharacterSelect.undeleting and not AccountReactivationInProgressDialog:IsShown()) then
+	if (CharacterSelect_AllowedToEnterWorld()) then
 		CharacterSelect_EnterWorld();
 	end
 end
@@ -822,6 +826,9 @@ function CharacterSelect_SelectCharacter(index, noCreate)
 		local charID = GetCharIDFromIndex(index);
 		SelectCharacter(charID);
 
+		if (not C_WowTokenPublic.GetCurrentMarketPrice()) then
+			AccountReactivate_RecheckEligibility();
+		end
 		ReactivateAccountDialog_Open();
 		local backgroundFileName = GetSelectBackgroundModel(charID);
 		CharacterSelect.currentBGTag = SetBackgroundModel(CharacterSelectModel, backgroundFileName);
@@ -875,6 +882,20 @@ function CharacterSelect_ChangeRealm()
 	PlaySound("gsCharacterSelectionDelCharacter");
 	CharacterSelect_SaveCharacterOrder();
 	RequestRealmList(true);
+end
+
+function CharacterSelect_AllowedToEnterWorld()
+	if (CharacterSelect.undeleting) then
+		return false;
+	elseif (AccountReactivationInProgressDialog:IsShown()) then
+		return false;
+	elseif (GoldReactivateConfirmationDialog:IsShown()) then
+		return false;
+	elseif (TokenReactivateConfirmationDialog:IsShown()) then
+		return false;
+	end
+
+	return true;
 end
 
 function CharacterSelectFrame_OnMouseDown(button)
@@ -1450,8 +1471,17 @@ GlueDialogTypes["TOKEN_GAME_TIME_OPTION_NOT_AVAILABLE"] = {
 	escapeHides = true,
 }
 
+function CharacterSelect_HasVeteranEligibilityInfo()
+	return TOKEN_COUNT_UPDATED and ((C_WowTokenGlue.GetTokenCount() > 0 or CAN_BUY_RESULT_FOUND) and C_WowTokenPublic.GetCurrentMarketPrice());
+end
+
+function CharacterSelect_ResetVeteranStatus()
+	CAN_BUY_RESULT_FOUND = false;
+	TOKEN_COUNT_UPDATED = false;
+end
+
 function CharacterSelect_CheckVeteranStatus()
-	if (IsVeteranTrialAccount() and TOKEN_COUNT_UPDATED and ((C_WowTokenGlue.GetTokenCount() > 0 or CAN_BUY_RESULT_FOUND) and MARKET_PRICE_UPDATED)) then
+	if (IsVeteranTrialAccount() and CharacterSelect_HasVeteranEligibilityInfo()) then
 		ReactivateAccountDialog_Open();
 	elseif (IsVeteranTrialAccount()) then
 		if (not TOKEN_COUNT_UPDATED) then
@@ -1460,7 +1490,7 @@ function CharacterSelect_CheckVeteranStatus()
 		if (not CAN_BUY_RESULT_FOUND and TOKEN_COUNT_UPDATED) then
 			C_WowTokenGlue.CheckVeteranTokenEligibility();
 		end
-		if (not MARKET_PRICE_UPDATED and CAN_BUY_RESULT_FOUND) then
+		if (not C_WowTokenPublic.GetCurrentMarketPrice() and CAN_BUY_RESULT_FOUND) then
 			C_WowTokenPublic.UpdateMarketPrice();
 		end
 	end
@@ -1470,7 +1500,7 @@ function CharacterSelect_UpdateButtonState()
 	local servicesEnabled = not CharSelectServicesFlowFrame:IsShown();
 	local undeleting = CharacterSelect.undeleting;
 	local undeleteEnabled, undeleteOnCooldown = GetCharacterUndeleteStatus();
-	local redemptionInProgress = AccountReactivationInProgressDialog:IsShown();
+	local redemptionInProgress = AccountReactivationInProgressDialog:IsShown() or GoldReactivateConfirmationDialog:IsShown() or TokenReactivateConfirmationDialog:IsShown();
 
 	local boostInProgress = select(18,GetCharacterInfo(GetCharacterSelection()));
 	CharSelectEnterWorldButton:SetEnabled(servicesEnabled and not undeleting and not boostInProgress and not redemptionInProgress);
@@ -1488,7 +1518,7 @@ function CharacterSelect_UpdateButtonState()
 	StoreButton:SetEnabled(servicesEnabled and not undeleting and not redemptionInProgress);
 	CharacterServicesTokenNormal:SetEnabled(not redemptionInProgress);
 	CharacterServicesTokenWoDFree:SetEnabled(not redemptionInProgress);
-	CharSelectAccountUpgradeButton:SetEnabled(not redemptionInProgress);
+	CharSelectAccountUpgradeButton:SetEnabled(not redemptionInProgress and not undeleting);
 end
 
 -- CHARACTER UNDELETE
@@ -1545,6 +1575,8 @@ function CharacterSelect_StartCharacterUndelete()
 	CharSelectBackToActiveButton:Show();
 	CharSelectChangeRealmButton:Hide();
 	CharSelectUndeleteLabel:Show();
+
+	AccountReactivate_CloseDialogs();
 
 	CharacterServicesMaster_UpdateServiceButton();
 	StartCharacterUndelete();

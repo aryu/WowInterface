@@ -345,5 +345,8 @@
 				</Scripts>
 			</Button>
 		</Frames>
+		<Scripts>
+			<OnHide function="AccountReactivate_RecheckEligibility"/>
+		</Scripts>
 	</Frame>
 </Ui>
