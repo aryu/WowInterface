@@ -24,6 +24,7 @@ local WaitingOnConfirmationTime = 0;
 local ProcessAnimPlayed = false;
 local NumUpgradeDistributions = 0;
 local JustOrderedBoost = false;
+local VASReady = false;
 
 --Imports
 Import("C_PurchaseAPI");
@@ -191,6 +192,10 @@ Import("BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE");
 Import("BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE");
 Import("BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE");
 Import("BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE");
+Import("BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE_CN");
+Import("BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE_CN");
+Import("BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE_CN");
+Import("BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE_CN");
 Import("TOOLTIP_DEFAULT_COLOR");
 Import("TOOLTIP_DEFAULT_BACKGROUND_COLOR");
 Import("CHARACTER_UPGRADE_LOG_OUT_NOW");
@@ -462,6 +467,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_GBP] = {
 		formatShort = currencyFormatGBP,
@@ -477,6 +496,20 @@ local currencySpecific = {
 		browseHasStar = true,
 		browseBuyButtonText = BLIZZARD_STORE_BUY_EUR,
 		confirmationButtonText = BLIZZARD_STORE_FINAL_BUY_EUR,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_KRW] = {
 		formatShort = currencyFormatRawStar,
@@ -492,6 +525,20 @@ local currencySpecific = {
 		requireLicenseAccept = true,
 		hideConfirmationBrowseNotice = true,
 		browseHasStar = false,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_EUR] = {
 		formatShort = currencyFormatEuro,
@@ -507,6 +554,20 @@ local currencySpecific = {
 		browseHasStar = true,
 		browseBuyButtonText = BLIZZARD_STORE_BUY_EUR,
 		confirmationButtonText = BLIZZARD_STORE_FINAL_BUY_EUR,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_RUB] = {
 		formatShort = currencyFormatRUB,
@@ -522,6 +583,20 @@ local currencySpecific = {
 		browseHasStar = true,
 		browseBuyButtonText = BLIZZARD_STORE_BUY_EUR,
 		confirmationButtonText = BLIZZARD_STORE_FINAL_BUY_EUR,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_ARS] = {
 		formatShort = currencyFormatARS,
@@ -534,6 +609,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_CLP] = {
 		formatShort = currencyFormatCLP,
@@ -546,6 +635,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_MXN] = {
 		formatShort = currencyFormatMXN,
@@ -558,6 +661,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_BRL] = {
 		formatShort = currencyFormatBRL,
@@ -570,6 +687,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_AUD] = {
 		formatShort = currencyFormatAUD,
@@ -582,6 +713,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_PAYMENT_METHOD,
 		paymentMethodSubtext = BLIZZARD_STORE_PAYMENT_METHOD_EXTRA,
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_CPT] = {
 		formatShort = currencyFormatRawStar,
@@ -595,6 +740,20 @@ local currencySpecific = {
 		paymentMethodSubtext = "",
 		hideConfirmationBrowseNotice = true,
 		browseHasStar = false,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE_CN,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE_CN,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE_CN,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE_CN,
+			},
+		},
 	},
 	[CURRENCY_TPT] = {
 		formatShort = currencyFormatTPT,
@@ -607,6 +766,20 @@ local currencySpecific = {
 		paymentMethodText = "",
 		paymentMethodSubtext = "",
 		browseHasStar = false,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 	[CURRENCY_BETA] = {
 		formatShort = currencyFormatBeta,
@@ -618,6 +791,20 @@ local currencySpecific = {
 		paymentMethodText = BLIZZARD_STORE_CONFIRMATION_TEST,
 		paymentMethodSubtext = "",
 		browseHasStar = true,
+		vasDisclaimerData = {
+			[LE_VAS_SERVICE_FACTION_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
+			},
+			[LE_VAS_SERVICE_RACE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
+			},
+			[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
+			},
+			[LE_VAS_SERVICE_NAME_CHANGE] = {
+				disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
+			},
+		},
 	},
 };
 
@@ -754,21 +941,6 @@ local vasErrorData = {
 	},
 };
 
--- Disclaimers for VAS products on the validation frame.
-local vasDisclaimerData = {
-	[LE_VAS_SERVICE_FACTION_CHANGE] = {
-		disclaimer = BLIZZARD_STORE_DISCLAIMER_FACTION_CHANGE,
-	},
-	[LE_VAS_SERVICE_RACE_CHANGE] = {
-		disclaimer = BLIZZARD_STORE_DISCLAIMER_RACE_CHANGE,
-	},
-	[LE_VAS_SERVICE_APPEARANCE_CHANGE] = {
-		disclaimer = BLIZZARD_STORE_DISCLAIMER_APPEARANCE_CHANGE,
-	},
-	[LE_VAS_SERVICE_NAME_CHANGE] = {
-		disclaimer = BLIZZARD_STORE_DISCLAIMER_NAME_CHANGE,
-	},
-};
 
 local factionColors = { 
 	[0] = "ffe50d12", 
@@ -1552,6 +1724,9 @@ end
 
 function StoreFramePurchaseSentOkayButton_OnClick(self)
 	StoreFrame_HidePurchaseSent(StoreFrame);
+	if (VASReady) then
+		StoreVASValidationFrame_OnVasProductComplete(StoreVASValidationFrame);
+	end
 end
 
 local ActiveURLIndex = nil;
@@ -1912,7 +2087,11 @@ function StoreVASValidationFrame_SetVASStart(self)
 	self.ProductName:SetText(name);
 	self.ProductDescription:SetText(description);
 
-	if (vasDisclaimerData[vasServiceType]) then
+	local currencyInfo = currencyInfo();
+
+	local vasDisclaimerData = currencyInfo.vasDisclaimerData;
+
+	if (vasDisclaimerData and vasDisclaimerData[vasServiceType]) then
 		self.Disclaimer:SetText("<html><body><p align=\"center\">"..vasDisclaimerData[vasServiceType].disclaimer.."</p></body></html>");
 		self.Disclaimer:Show();
 	end
@@ -1944,14 +2123,14 @@ function StoreVASValidationFrame_SetVASStart(self)
 	self.CharacterSelectionFrame.ValidationDescription:Hide();
 	self.CharacterSelectionFrame.ChangeIconFrame:Hide();
 	self.CharacterSelectionFrame:Show();
-
+	
 	self:ClearAllPoints();
 	self:SetPoint("CENTER", 0, 0);
 
 	self:Show();
 end
 
-function StoreVASValidationFrame_AppendError(desc, errorID, character)
+function StoreVASValidationFrame_AppendError(desc, errorID, character, firstAppend)
 	local errorData = vasErrorData[errorID];
 	local str;
 	if (type(errorData.msg) == "function") then
@@ -1960,7 +2139,7 @@ function StoreVASValidationFrame_AppendError(desc, errorID, character)
 		str = errorData.msg;
 	end
 
-	local sep = desc ~= "" and "|n|n" or "";
+	local sep = desc ~= "" and (firstAppend and "|n|n" or "|n") or "";
 	return desc .. sep .. str;
 end
 
@@ -1996,43 +2175,57 @@ function StoreVASValidationFrame_OnEvent(self, event, ...)
 			elseif (hasNonUserFixable) then
 				for i = 1, #errors do
 					if (vasErrorData[errors[i]].notUserFixable) then
-						desc = StoreVASValidationFrame_AppendError(desc, errors[i], character);
+						desc = StoreVASValidationFrame_AppendError(desc, errors[i], character, i == 1);
 					end
 				end
 			else
 				for i = 1, #errors do
-					desc = StoreVASValidationFrame_AppendError(desc, errors[i], character);
+					desc = StoreVASValidationFrame_AppendError(desc, errors[i], character, i == 1);
 				end
 			end
 			frame.ChangeIconFrame:Hide();
-			frame.ValidationDescription:ClearAllPoints();
-			frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -16);
+			if (VASServiceType ~= LE_VAS_SERVICE_NAME_CHANGE) then
+				frame.ValidationDescription:ClearAllPoints();
+				frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -8);
+			else
+				frame.ValidationDescription:ClearAllPoints();
+				frame.ValidationDescription:SetPoint("TOPLEFT", frame.NewCharacterName, "BOTTOMLEFT", -5, -6);
+			end
+			frame.ValidationDescription:SetFontObject("GameFontBlackSmall2");
 			frame.ValidationDescription:SetTextColor(1.0, 0.1, 0.1);
 			frame.ValidationDescription:SetText(desc);
+			frame.ValidationDescription:Show();
 			StoreVASValidationFrame.CharacterSelectionFrame.ContinueButton:Show();
 			StoreVASValidationFrame.CharacterSelectionFrame.ContinueButton:Disable();
 		end
 	elseif ( event == "STORE_VAS_PURCHASE_COMPLETE" ) then
-		local productID, guid, realmName = C_PurchaseAPI.GetVASCompletionInfo();
-		local name, _, _, _, _, _, _, _, vasServiceType = select(7, C_PurchaseAPI.GetProductInfo(productID));
-		if (IsOnGlueScreen()) then
-			self:GetParent():Hide();	
-			_G.StoreFrame_ShowGlueDialog((_G.BLIZZARD_STORE_VAS_PRODUCT_READY):format(name), guid, realmName);
-		else
-			self:GetParent():Hide();
-			ServicesLogoutPopup.Background.Title:SetText(BLIZZARD_STORE_PRODUCT_IS_READY:format(name));
-			local desc;
-			if (vasServiceType == LE_VAS_SERVICE_NAME_CHANGE) then
-				desc = BLIZZARD_STORE_NAME_CHANGE_READY_DESCRIPTION;
-			else
-				desc = BLIZZARD_STORE_VAS_SERVICE_READY_DESCRIPTION;
-			end
-			ServicesLogoutPopup.Background.Description:SetText(desc);
-			ServicesLogoutPopup.forVasService = true;
-			ServicesLogoutPopup.forBoost = false;
-			ServicesLogoutPopup:Show();
-		end
+		VASReady = true;
+		JustFinishedOrdering = true;
+		StoreFrame_UpdateActivePanel(StoreFrame);
 	end
+end
+
+function StoreVASValidationFrame_OnVasProductComplete(self)
+	local productID, guid, realmName = C_PurchaseAPI.GetVASCompletionInfo();
+	local name, _, _, _, _, _, _, _, vasServiceType = select(7, C_PurchaseAPI.GetProductInfo(productID));
+	if (IsOnGlueScreen()) then
+		self:GetParent():Hide();	
+		_G.StoreFrame_ShowGlueDialog((_G.BLIZZARD_STORE_VAS_PRODUCT_READY):format(name), guid, realmName);
+	else
+		self:GetParent():Hide();
+		ServicesLogoutPopup.Background.Title:SetText(BLIZZARD_STORE_PRODUCT_IS_READY:format(name));
+		local desc;
+		if (vasServiceType == LE_VAS_SERVICE_NAME_CHANGE) then
+			desc = BLIZZARD_STORE_NAME_CHANGE_READY_DESCRIPTION;
+		else
+			desc = BLIZZARD_STORE_VAS_SERVICE_READY_DESCRIPTION;
+		end
+		ServicesLogoutPopup.Background.Description:SetText(desc);
+		ServicesLogoutPopup.forVasService = true;
+		ServicesLogoutPopup.forBoost = false;
+		ServicesLogoutPopup:Show();
+	end
+	VASReady = false;
 end
 
 function StoreVASValidationFrame_OnShow(self)
@@ -2717,25 +2910,29 @@ function VASCharacterSelectionCharacterSelector_Callback(value)
 	frame.SelectedCharacterName:Show();
 	frame.SelectedCharacterDescription:SetText(VAS_SELECTED_CHARACTER_DESCRIPTION:format(level, character.raceName, character.className));
 	frame.SelectedCharacterDescription:Show();
+	frame.ValidationDescription:SetFontObject("GameFontBlack");
 	frame.ValidationDescription:SetTextColor(0, 0, 0);
 
+	local bottomWidget = frame.SelectedCharacterFrame;
 	if (VASServiceType == LE_VAS_SERVICE_NAME_CHANGE) then
 		frame.NewCharacterName:SetText("");
 		frame.NewCharacterName:Show();
 		frame.NewCharacterName:SetFocus();
 		bottomWidget = frame.NewCharacterName;
 		frame.ContinueButton:Disable();
+		frame.ValidationDescription:ClearAllPoints();
+		frame.ValidationDescription:SetPoint("TOPLEFT", bottomWidget, "BOTTOMLEFT", -5, -6);
 	else
-		local bottomWidget = frame.SelectedCharacterFrame;
 		if (VASServiceType == LE_VAS_SERVICE_RACE_CHANGE) then
 			local races = C_PurchaseAPI.GetEligibleRacesForRaceChange(character.guid);
 
 			if (not races or #races == 0) then
 				frame.ChangeIconFrame:Hide();
 				frame.ValidationDescription:ClearAllPoints();
-				frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -16);
+				frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -8);
+				frame.ValidationDescription:SetFontObject("GameFontBlackSmall2");
 				frame.ValidationDescription:SetTextColor(1.0, 0.1, 0.1);
-				frame.ValidationDescription:SetText(StoreVASValidationFrame_AppendError(BLIZZARD_STORE_VAS_ERROR_LABEL, LE_VAS_ERROR_RACE_CLASS_COMBO_INELIGIBLE, character));
+				frame.ValidationDescription:SetText(StoreVASValidationFrame_AppendError(BLIZZARD_STORE_VAS_ERROR_LABEL, LE_VAS_ERROR_RACE_CLASS_COMBO_INELIGIBLE, character, true));
 				frame.ValidationDescription:Show();
 				frame.ContinueButton:Disable();
 				return;
@@ -2769,9 +2966,10 @@ function VASCharacterSelectionCharacterSelector_Callback(value)
 			else
 				frame.ChangeIconFrame:Hide();
 				frame.ValidationDescription:ClearAllPoints();
-				frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -16);
+				frame.ValidationDescription:SetPoint("TOPLEFT", frame.SelectedCharacterFrame, "BOTTOMLEFT", 8, -8);
+				frame.ValidationDescription:SetFontObject("GameFontBlackSmall2");
 				frame.ValidationDescription:SetTextColor(1.0, 0.1, 0.1);
-				frame.ValidationDescription:SetText(StoreVASValidationFrame_AppendError(BLIZZARD_STORE_VAS_ERROR_LABEL, LE_VAS_ERROR_RACE_CLASS_COMBO_INELIGIBLE, character));
+				frame.ValidationDescription:SetText(StoreVASValidationFrame_AppendError(BLIZZARD_STORE_VAS_ERROR_LABEL, LE_VAS_ERROR_RACE_CLASS_COMBO_INELIGIBLE, character, true));
 				frame.ValidationDescription:Show();
 				frame.ContinueButton:Disable();
 				return;
@@ -2785,10 +2983,10 @@ function VASCharacterSelectionCharacterSelector_Callback(value)
 			frame.ValidationDescription:SetText(VAS_APPEARANCE_CHANGE_VALIDATION_DESCRIPTION);
 			frame.ValidationDescription:Show();
 		end
+		frame.ValidationDescription:ClearAllPoints();
+		frame.ValidationDescription:SetPoint("TOPLEFT", bottomWidget, "BOTTOMLEFT", 8, -16);
 		frame.ContinueButton:Enable();
 	end
-	frame.ValidationDescription:ClearAllPoints();
-	frame.ValidationDescription:SetPoint("TOPLEFT", bottomWidget, "BOTTOMLEFT", 8, -16);
 end
 
 function VASCharacterSelectionRealmSelector_OnClick(self)
@@ -2859,17 +3057,23 @@ function VASCharacterSelectionContinueButton_OnClick(self)
 		return;
 	end
 
-	NewCharacterName = self:GetParent().NewCharacterName:GetText();
-	
 	-- Glue screen only
-	local valid, reason = _G.IsCharacterNameValid(NewCharacterName);
 
-	if (not valid) then
-		self:GetParent().ValidationDescription:SetTextColor(1.0, 0.1, 0.1);
-		self:GetParent().ValidationDescription:SetText(BLIZZARD_STORE_VAS_ERROR_LABEL.."|n|n- ".._G[reason]);
-		self:GetParent().ValidationDescription:Show();
-		self:GetParent().ContinueButton:Disable();
-	elseif ( C_PurchaseAPI.PurchaseVASProduct(productID, characters[SelectedCharacter].guid, NewCharacterName) ) then
+	if ( VASServiceType == LE_VAS_SERVICE_NAME_CHANGE ) then
+		NewCharacterName = self:GetParent().NewCharacterName:GetText();
+
+		local valid, reason = _G.IsCharacterNameValid(NewCharacterName);
+		if ( not valid) then
+			self:GetParent().ValidationDescription:SetFontObject("GameFontBlackSmall2");
+			self:GetParent().ValidationDescription:SetTextColor(1.0, 0.1, 0.1);
+			self:GetParent().ValidationDescription:SetText(_G[reason]);
+			self:GetParent().ValidationDescription:Show();
+			self:GetParent().ContinueButton:Disable();
+			return;
+		end
+	end
+
+	if ( C_PurchaseAPI.PurchaseVASProduct(productID, characters[SelectedCharacter].guid, NewCharacterName) ) then
 		WaitingOnConfirmation = true;
 		WaitingOnConfirmationTime = GetTime();
 		StoreFrame_UpdateActivePanel(StoreFrame);
