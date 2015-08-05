@@ -2503,12 +2503,14 @@ function ChatFrame_OnLoad(self)
 	self:RegisterEvent("PLAYER_REPORT_SUBMITTED");
 	self:RegisterEvent("NEUTRAL_FACTION_SELECT_RESULT");
 	self:RegisterEvent("CHARACTER_UPGRADE_SPELL_TIER_SET");
+	self:RegisterEvent("ALTERNATIVE_DEFAULT_LANGUAGE_CHANGED");
 	self.tellTimer = GetTime();
 	self.channelList = {};
 	self.zoneChannelList = {};
 	self.messageTypeList = {};
 	
 	self.defaultLanguage = GetDefaultLanguage(); --If PLAYER_ENTERING_WORLD hasn't been called yet, this is nil, but it'll be fixed whent he event is fired.
+	self.alternativeDefaultLanguage = GetAlternativeDefaultLanguage();
 end
 
 function ChatFrame_RegisterForMessages(self, ...)
@@ -2724,9 +2726,14 @@ end
 function ChatFrame_ConfigEventHandler(self, event, ...)
 	if ( event == "PLAYER_ENTERING_WORLD" ) then
 		self.defaultLanguage = GetDefaultLanguage();
+		self.alternativeDefaultLanguage = GetAlternativeDefaultLanguage();
 		return true;
 	elseif ( event == "NEUTRAL_FACTION_SELECT_RESULT" ) then
 		self.defaultLanguage = GetDefaultLanguage();
+		self.alternativeDefaultLanguage = GetAlternativeDefaultLanguage();
+		return true;
+	elseif ( event == "ALTERNATIVE_DEFAULT_LANGUAGE_CHANGED" ) then		
+		self.alternativeDefaultLanguage = GetAlternativeDefaultLanguage();
 		return true;
 	elseif ( event == "UPDATE_CHAT_WINDOWS" ) then
 		local name, fontSize, r, g, b, a, shown, locked = FCF_GetChatWindowInfo(self:GetID());
@@ -3249,7 +3256,11 @@ function ChatFrame_MessageEventHandler(self, event, ...)
 				message = ChatFrame_GetMobileEmbeddedTexture(info.r, info.g, info.b)..message;
 			end
 			
-			if ( (strlen(arg3) > 0) and (arg3 ~= self.defaultLanguage) ) then
+			local relevantDefaultLanguage = self.defaultLanguage;
+			if ( (type == "SAY") or (type == "YELL") ) then
+				relevantDefaultLanguage = self.alternativeDefaultLanguage;
+			end
+			if ( (strlen(arg3) > 0) and (arg3 ~= relevantDefaultLanguage) ) then
 				local languageHeader = "["..arg3.."] ";
 				if ( showLink and (strlen(arg2) > 0) ) then
 					body = format(_G["CHAT_"..type.."_GET"]..languageHeader..message, pflag..playerLink.."["..coloredName.."]".."|h");
