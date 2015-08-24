@@ -200,11 +200,13 @@ function CharacterSelect_OnShow()
 
 	-- update veteran logo and banner art
 	local expansionLevel = min(GetClientDisplayExpansionLevel(), max(GetAccountExpansionLevel(), GetExpansionLevel()));
-	EXPANSION_LOGOS["VETERAN"] = EXPANSION_LOGOS[expansionLevel]
-	expansionLevel = expansionLevel - 1; -- because the upgrade art is indexed as the previous expansion in ACCOUNT_UPGRADE_FEATURES
-	ACCOUNT_UPGRADE_FEATURES["VETERAN"].logo = ACCOUNT_UPGRADE_FEATURES[expansionLevel].logo;
-	ACCOUNT_UPGRADE_FEATURES["VETERAN"].atlasLogo = ACCOUNT_UPGRADE_FEATURES[expansionLevel].atlasLogo;
-	ACCOUNT_UPGRADE_FEATURES["VETERAN"].banner = ACCOUNT_UPGRADE_FEATURES[expansionLevel].banner;
+	if ( expansionLevel > 0 ) then
+		EXPANSION_LOGOS["VETERAN"] = EXPANSION_LOGOS[expansionLevel]
+		expansionLevel = expansionLevel - 1; -- because the upgrade art is indexed as the previous expansion in ACCOUNT_UPGRADE_FEATURES
+		ACCOUNT_UPGRADE_FEATURES["VETERAN"].logo = ACCOUNT_UPGRADE_FEATURES[expansionLevel].logo;
+		ACCOUNT_UPGRADE_FEATURES["VETERAN"].atlasLogo = ACCOUNT_UPGRADE_FEATURES[expansionLevel].atlasLogo;
+		ACCOUNT_UPGRADE_FEATURES["VETERAN"].banner = ACCOUNT_UPGRADE_FEATURES[expansionLevel].banner;
+	end
 	
 	AccountUpgradePanel_Update(CharSelectAccountUpgradeButton.isExpanded);
 

@@ -220,7 +220,6 @@ function HelpFrame_OnEvent(self, event, ...)
 		-- If there are args then the player has a ticket
 		if ( category and ticketDescription ) then
 			-- Has an open ticket
-			HelpFrameOpenTicketEditBox:SetText(ticketDescription);
 			haveTicket = true;
 		else
 			-- the player does not have a ticket

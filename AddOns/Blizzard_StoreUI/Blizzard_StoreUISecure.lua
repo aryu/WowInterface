@@ -24,6 +24,7 @@ local WaitingOnConfirmationTime = 0;
 local ProcessAnimPlayed = false;
 local NumUpgradeDistributions = 0;
 local JustOrderedBoost = false;
+local BoostProduct = nil;
 local VASReady = false;
 
 --Imports
@@ -1515,20 +1516,7 @@ function StoreFrame_OnEvent(self, event, ...)
 		StoreFrame_UpdateActivePanel(self);
 	elseif ( event == "PRODUCT_DISTRIBUTIONS_UPDATED" ) then
 		if (JustOrderedBoost) then
-			if (IsOnGlueScreen() and not _G.CharacterSelect.undeleting) then
-				self:Hide();
-				_G.CharacterUpgradeFlow:SetTarget(false);
-				_G.CharSelectServicesFlowFrame:Show();
-				_G.CharacterServicesMaster_SetFlow(_G.CharacterServicesMaster, _G.CharacterUpgradeFlow);
-			elseif (not IsOnGlueScreen()) then
-				self:Hide();
-				ServicesLogoutPopup.Background.Title:SetText(CHARACTER_UPGRADE_READY);
-				ServicesLogoutPopup.Background.Description:SetText(CHARACTER_UPGRADE_READY_DESCRIPTION);
-				ServicesLogoutPopup.forBoost = true;
-				ServicesLogoutPopup.forVasService = false;
-				ServicesLogoutPopup:Show();
-			end
-			JustOrderedBoost = false;
+			StoreFrame_OnCharacterBoostDelivered(self);
 		end
 	elseif ( event == "AUTH_CHALLENGE_FINISHED" ) then
 		if (not C_AuthChallenge.DidChallengeSucceed()) then
@@ -1548,7 +1536,6 @@ function StoreFrame_OnEvent(self, event, ...)
 end
 
 function StoreFrame_OnShow(self)
-	JustFinishedOrdering = false;
 	C_PurchaseAPI.GetProductList();
 	C_WowTokenPublic.UpdateMarketPrice();
 	self:SetAttribute("isshown", true);
@@ -1571,6 +1558,25 @@ function StoreFrame_OnMouseWheel(self, value)
 			StoreFrameNextPageButton_OnClick(self.NextPageButton);
 		end	
 	end
+end
+
+function StoreFrame_OnCharacterBoostDelivered(self)
+	if (IsOnGlueScreen() and not _G.CharacterSelect.undeleting) then
+		self:Hide();
+		_G.CharacterUpgradeFlow:SetTarget(false);
+		_G.CharSelectServicesFlowFrame:Show();
+		_G.CharacterUpgradeFlow.data = _G.CharacterUpgrade_Items[BoostProduct].paid;
+		_G.CharacterServicesMaster_SetFlow(_G.CharacterServicesMaster, _G.CharacterUpgradeFlow);
+	elseif (not IsOnGlueScreen()) then
+		self:Hide();
+		ServicesLogoutPopup.Background.Title:SetText(CHARACTER_UPGRADE_READY);
+		ServicesLogoutPopup.Background.Description:SetText(CHARACTER_UPGRADE_READY_DESCRIPTION);
+		ServicesLogoutPopup.forBoost = true;
+		ServicesLogoutPopup.forVasService = false;
+		ServicesLogoutPopup:Show();
+	end
+	JustFinishedOrdering = false;
+	JustOrderedBoost = false;
 end
 
 function StoreFrame_UpdateBuyButton()
@@ -1734,7 +1740,6 @@ function StoreFrame_UpdateActivePanel(self)
 		end
 		StoreFrame_SetAlert(self, BLIZZARD_STORE_TRANSACTION_IN_PROGRESS, progressText);
 	elseif ( JustFinishedOrdering ) then
-		JustFinishedOrdering = false;
 		StoreFrame_HideAlert(self);
 		StoreFrame_ShowPurchaseSent(self);
 	elseif ( not C_PurchaseAPI.IsAvailable() ) then
@@ -1786,6 +1791,7 @@ function StoreFrame_ShowPurchaseSent(self)
 end
 
 function StoreFrame_HidePurchaseSent(self)
+	JustFinishedOrdering = false;
 	self.PurchaseSentFrame:Hide();
 end
 
@@ -1793,6 +1799,8 @@ function StoreFramePurchaseSentOkayButton_OnClick(self)
 	StoreFrame_HidePurchaseSent(StoreFrame);
 	if (VASReady) then
 		StoreVASValidationFrame_OnVasProductComplete(StoreVASValidationFrame);
+	elseif (JustOrderedBoost) then
+		StoreFrame_OnCharacterBoostDelivered(StoreFrame);
 	end
 end
 
@@ -2051,8 +2059,10 @@ function StoreConfirmationFrame_Update(self)
 		finalIcon = "Interface\\Icons\\INV_Misc_Note_02";
 	end
 	StoreConfirmationFrame_SetNotice(self, finalIcon, productInfo.name, productInfo.currentDollars, productInfo.currentCents, walletName, productInfo.isBoost, productInfo.isVasService);
-	IsUpgrade = upgrade;
-
+	IsUpgrade = productInfo.isBoost;
+	if (productInfo.isBoost) then
+		BoostProduct = productInfo.boostProduct;
+	end
 	local info = currencyInfo();
 	self.NoticeFrame.BrowseNotice:SetText(info.browseNotice);
 	self.NoticeFrame.BrowseNotice:SetShown(not info.hideConfirmationBrowseNotice);
@@ -2268,9 +2278,13 @@ function StoreVASValidationFrame_OnEvent(self, event, ...)
 			StoreVASValidationFrame.CharacterSelectionFrame.ContinueButton:Disable();
 		end
 	elseif ( event == "STORE_VAS_PURCHASE_COMPLETE" ) then
+		if (StoreFrame:IsShown()) then
 			VASReady = true;
 			JustFinishedOrdering = true;
 			StoreFrame_UpdateActivePanel(StoreFrame);
+		elseif (IsOnGlueScreen() and _G.CharacterSelect:IsVisible()) then
+			StoreVASValidationFrame_OnVasProductComplete(StoreVASValidationFrame);
+		end
 	end
 end
 
@@ -3188,9 +3202,9 @@ function ServicesLogoutPopup_OnLoad(self)
 end
 
 function ServicesLogoutPopupConfirmButton_OnClick(self)
-	if (self.forBoost) then
-		C_SharedCharacterServices.SetStartAutomatically(true);
-	elseif (self.forVasService) then
+	if (ServicesLogoutPopup.forBoost) then
+		C_SharedCharacterServices.SetStartAutomatically(true, BoostProduct);
+	elseif (ServicesLogoutPopup.forVasService) then
 		C_PurchaseAPI.SetVASProductReady(true);
 	end
 	ServicesLogoutPopup.forBoost = false;

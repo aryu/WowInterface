@@ -436,11 +436,13 @@ function CharacterServicesMaster_OnEvent(self, event, ...)
 end
 
 function CharacterServicesMaster_OnCharacterListUpdate()
+	local startAutomatically, automaticProduct = C_CharacterServices.GetStartAutomatically();
 	if (CharacterServicesMaster.waitingForLevelUp) then
 		C_CharacterServices.ApplyLevelUp();
 		CharacterServicesMaster.waitingForLevelUp = false;
-	elseif (CHARACTER_UPGRADE_CREATE_CHARACTER or C_CharacterServices.GetStartAutomatically()) then
+	elseif (CHARACTER_UPGRADE_CREATE_CHARACTER or startAutomatically) then
 		CharSelectServicesFlowFrame:Show();
+		CharacterUpgradeFlow.data = CharacterUpgrade_Items[automaticProduct].paid;
 		CharacterServicesMaster_SetFlow(CharacterServicesMaster, CharacterUpgradeFlow);
 		CHARACTER_UPGRADE_CREATE_CHARACTER = false;
 		C_SharedCharacterServices.SetStartAutomatically(false);
