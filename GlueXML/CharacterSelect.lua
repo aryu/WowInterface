@@ -233,6 +233,13 @@ function CharacterSelect_OnShow()
 	end
 	
 	CharacterSelect_CheckVeteranStatus();
+
+	if (C_StoreGlue.GetDisconnectOnLogout()) then
+		C_PurchaseAPI.SetDisconnectOnLogout(false);
+		DisconnectFromServer();
+		GlueDialog:Hide();
+		SetGlueScreen("login");
+	end	
 end
 
 function CharacterSelect_OnHide(self)
@@ -535,7 +542,7 @@ function UpdateCharacterSelection(self)
 		button.selection:Hide();
 		button.upButton:Hide();
 		button.downButton:Hide();
-		if (self.undeleting) then
+		if (self.undeleting or CharSelectServicesFlowFrame:IsShown()) then
 			paidServiceButton:Hide();
 			CharacterSelectButton_DisableDrag(button);
 		else
